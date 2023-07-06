@@ -103,13 +103,27 @@ RUN cd /tools \
 
 # Copy scripts into /scripts to make availible to users
 RUN cd /scripts \
-    && wget $TOOLS_REPOSITORY_RAW_URL/main/met_scripts/ngeearctic/download_elm_singlesite_forcing_data.sh \
-    && wget $TOOLS_REPOSITORY_RAW_URL/main/elm_scripts/ngeearctic_elm_scripts/olmt_scripts/ngeearctic_site_fullrun_userdata_docker.sh \
-    && mv ngeearctic_site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
+    && cp /tools/OLMT/examples/download_elm_singlesite_forcing_data.sh ./ \
+    && cp /tools/OLMT/examples/site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
     && chown $USER:dockerusers download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh \
     && chown $USER:dockerusers OLMT_docker_example.sh \
     && chmod +x OLMT_docker_example.sh
+
+
+## --------------------------------------------------------------------------------------------------------------------
+
+## SPELL: Software-tools for Porting ELM with openacc in a function unit test framework
+
+RUN cd /tools \
+    && git -c http.sslVerify=false clone  https://github.com/peterdschwartz/SPEL_OpenACC.git \
+    && cd SPEL_OpenACC \
+    && git checkout vSC22 \
+    && chown $USER:dockerusers -R /tools/SPEL_OpenACC \
+    && chmod -R 777 /tools/SPEL_OpenACC
+
+
+## --------------------------------------------------------------------------------------------------------------------
 
 USER ${USER}
 RUN export USER=${USER}
