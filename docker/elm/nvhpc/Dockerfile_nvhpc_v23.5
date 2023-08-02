@@ -110,6 +110,10 @@ RUN cd /scripts \
     && chown $USER:dockerusers OLMT_docker_example.sh \
     && chmod +x OLMT_docker_example.sh
 
+# download forcing data
+RUN cd /scripts \
+    && bash ./download_elm_singlesite_forcing_data.sh
+
 
 ## --------------------------------------------------------------------------------------------------------------------
 
