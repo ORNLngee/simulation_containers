@@ -97,7 +97,7 @@ USER ${USER}
 ## Install OLMT tool into the container to use with site or ensemble simulations
 # This uses a stable release of the Arctic-userpft branch of OLMT
 RUN cd /tools \
-    && git -c http.sslVerify=false clone -b Arctic-userpft --single-branch --depth 1 https://github.com/dmricciuto/OLMT.git \
+    && git -c http.sslVerify=false clone -b Arctic-userpft --single-branch https://github.com/dmricciuto/OLMT.git \
     && chown $USER:dockerusers -R /tools/OLMT \
     && chmod -R 777 /tools/OLMT
 
@@ -105,11 +105,14 @@ RUN cd /tools \
 RUN cd /scripts \
     && cp /tools/OLMT/examples/download_elm_singlesite_forcing_data.sh ./ \
     && cp /tools/OLMT/examples/site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
+    && cp /tools/OLMT/examples/global_fullrun_docker_nvhpc_42fluxnetsites.sh OLMT_docker_42fluxnetsites_example.sh \
     && chown $USER:dockerusers download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh \
     && chown $USER:dockerusers OLMT_docker_example.sh \
-    && chmod +x OLMT_docker_example.sh
-
+    && chmod +x OLMT_docker_example.sh \
+    && chown $USER:dockerusers OLMT_docker_42fluxnetsites_example.sh \
+    && chmod +x OLMT_docker_42fluxnetsites_example.sh
+    
 # download forcing data
 RUN cd /scripts \
     && bash ./download_elm_singlesite_forcing_data.sh
