@@ -55,7 +55,7 @@ RUN cd / \
 ## Checkout ELM model
 RUN cd / \
     && git config --global https.postBuffer 1048576000 \
-    && git -c http.sslVerify=false clone -b peterdschwartz/lnd/hires-io --depth 1 --single-branch  https://github.com/fmyuan/E3SM.git \
+    && git -c http.sslVerify=false clone -b elm_io --depth 1 https://github.com/daliwang/uELM.git E3SM \
     && cd /E3SM \
     && git submodule init \
     && git submodule update -f --recursive
@@ -81,6 +81,13 @@ RUN cd /home/$USER/.cime \
     && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/nvidiagpu_docker.cmake \
     && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/nvidiagpu.cmake \
     && cd /
+
+# Check out SourceMods
+RUN cd / \
+    && git config --global https.postBuffer 1048576000 \
+    && git -c http.sslVerify=false clone https://github.com/daliwang/uELM_sourceMods.git \
+    && chown $USER:dockerusers /uELM_sourceMods \
+    && chmod -R 777 /uELM_sourceMods
 
 # Provide a symlink between ncap and ncap2 for OLMT 
 # Switch to using modeluser for test build (so it can find the ~/.cime docker machine configuration files)
@@ -109,13 +116,22 @@ RUN cd /scripts \
     && chown $USER:dockerusers download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh \
     && chown $USER:dockerusers OLMT_docker_example.sh \
-    && chmod +x OLMT_docker_example.sh \
+    && chmod +x OLMT_docker_example.sh \:
     && chown $USER:dockerusers OLMT_docker_42fluxnetsites_example.sh \
     && chmod +x OLMT_docker_42fluxnetsites_example.sh
     
 # download forcing data
 RUN cd /scripts \
     && bash ./download_elm_singlesite_forcing_data.sh
+    
+# make a few softlinks for testing datasets (42_FLUXNETSITES)
+RUN cd /inputdata \
+    && mkdir -p atm/datm7/42_FLUXNETSITES \
+    && cd atm/datm7/42_FLUXNETSITES \
+    && ln -sf /inputdata/atm/datm7/CLM1PT_data/42_FLUXNETSITES CLM1PT_data \
+    && cd /inputdata/lnd/clm2/surfdata_map \
+    && ln -sf surfdata_42_FLUXNETSITES_simyr1850_c170912.nc surfdata_42_FLUXNETSITES_simyr1850.nc \
+    && cd /
 
 
 ## --------------------------------------------------------------------------------------------------------------------
