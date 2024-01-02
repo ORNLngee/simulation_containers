@@ -53,10 +53,14 @@ RUN cd / \
 ## --------------------------------------------------------------------------------------------------------------------
 
 ## Checkout ELM model
+##  note: there are 2 perl commands, which edit 'git@github.com:' to 'https://github.com/'
+
 RUN cd / \
     && git config --global https.postBuffer 1048576000 \
-    && git -c http.sslVerify=false clone -b elm_io --depth 1 https://github.com/daliwang/uELM.git E3SM \
+    && git -c http.sslVerify=false clone -b pds-rebased-elm-gpu --depth 1 https://github.com/E3SM-Project/E3SM.git E3SM \
     && cd /E3SM \
+    && perl -pi -e 's/com:/com\//g' ./.gitmodules \
+    && perl -pi -e 's/git@/https:\/\//g' ./.gitmodules \
     && git submodule init \
     && git submodule update -f --recursive
 
@@ -116,7 +120,7 @@ RUN cd /scripts \
     && chown $USER:dockerusers download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh \
     && chown $USER:dockerusers OLMT_docker_example.sh \
-    && chmod +x OLMT_docker_example.sh \:
+    && chmod +x OLMT_docker_example.sh \
     && chown $USER:dockerusers OLMT_docker_42fluxnetsites_example.sh \
     && chmod +x OLMT_docker_42fluxnetsites_example.sh
     
