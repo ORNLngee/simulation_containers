@@ -9,7 +9,7 @@
 #
 # ----------------------------------------------------------------------
 
-FROM fasstsimulation/baseos:gcc940ompi412
+FROM fasstsimulation/baseos:gcc940ompi412-latest
 LABEL maintainer.name="Shawn P. Serbin" \
       maintainer.email="sserbin@bnl.gov" \
       author.name="Shawn P. Serbin" \
@@ -28,10 +28,9 @@ RUN cd / \
     && pip3 install dask
     
 # where to get the ELM source code
-#ENV REPOSITORY_URL=https://github.com/FASSt-simulation/simulation_containers
-ENV REPOSITORY_URL=https://github.com/fmyuan/elm_containers
-ENV REPOSITORY_RAW_URL=https://raw.githubusercontent.com/fmyuan/elm_containers
-ENV TOOLS_REPOSITORY_RAW_URL=https://raw.githubusercontent.com/FASSt-simulation/fasst_simulation_tools
+ENV REPOSITORY_URL=https://github.com/ORNLngee/simulation_containers
+ENV REPOSITORY_RAW_URL=https://raw.githubusercontent.com/ORNLngee/simulation_containers
+ENV TOOLS_REPOSITORY_RAW_URL=https://raw.githubusercontent.com/ORNLngee/ngeeA_elm_simulation_tools
 ENV USER=modeluser
 
 # Add new group, user, and user directory with user permissions
@@ -71,15 +70,15 @@ RUN cd / \
 
 RUN cd /E3SM \
     && cd /.cime \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config_compilers.xml \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config_machines.xml \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/gnu_docker.cmake \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_compilers.xml \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_machines.xml \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/gnu_docker.cmake \
     && cd /home/$USER/.cime \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config_compilers.xml \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config_machines.xml \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/gnu_docker.cmake \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_compilers.xml \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_machines.xml \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/gnu_docker.cmake \
     && cd /
 
 # Provide a symlink between ncap and ncap2 for OLMT 
@@ -125,8 +124,8 @@ RUN cd /tools \
 
 # Copy scripts into /scripts to make availible to users
 RUN cd /scripts \
-    && wget $TOOLS_REPOSITORY_RAW_URL/main/met_scripts/ngeearctic/download_elm_singlesite_forcing_data.sh \
-    && wget $TOOLS_REPOSITORY_RAW_URL/main/elm_scripts/ngeearctic_elm_scripts/olmt_scripts/ngeearctic_site_fullrun_userdata_docker.sh \
+    && wget $TOOLS_REPOSITORY_RAW_URL/master/met_scripts/ngeearctic/download_elm_singlesite_forcing_data.sh \
+    && wget $TOOLS_REPOSITORY_RAW_URL/master/elm_scripts/ngeearctic_elm_scripts/olmt_scripts/ngeearctic_site_fullrun_userdata_docker.sh \
     && mv ngeearctic_site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
     && chown $USER:dockerusers download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh \
