@@ -123,14 +123,14 @@ RUN cd / \
 
 RUN cd /E3SM \
     && cd /.cime \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config \
     && wget https://github.com/bsulman/elm_containers/raw/elm_pflotran/docker/elm/cime_config_alquimia/config_compilers.xml \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config_machines.xml \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_machines.xml \
     && wget https://github.com/bsulman/elm_containers/raw/elm_pflotran/docker/elm/cime_config_alquimia/gnu_docker.cmake \
     && cd /home/$USER/.cime \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config \
     && wget https://github.com/bsulman/elm_containers/raw/elm_pflotran/docker/elm/cime_config_alquimia/config_compilers.xml \
-    && wget $REPOSITORY_URL/raw/main/docker/elm/cime_config/config_machines.xml \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_machines.xml \
     && wget https://github.com/bsulman/elm_containers/raw/elm_pflotran/docker/elm/cime_config_alquimia/gnu_docker.cmake \
     && cd /
 
