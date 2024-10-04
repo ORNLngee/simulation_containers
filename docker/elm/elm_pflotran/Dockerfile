@@ -92,7 +92,7 @@ RUN    pip3 install networkx \
     && pip3 install xarray \
     && pip3 install cffi
 
-RUN cd / && git clone -b alquimia_compile_fix --recursive https://github.com/bsulman/REDOX-PFLOTRAN.git \
+RUN cd / && git clone -b master --recursive https://github.com/bsulman/REDOX-PFLOTRAN.git \
     && mkdir REDOX-PFLOTRAN/alquimia/build \
     && cd REDOX-PFLOTRAN/alquimia/build \
     && cmake .. \
@@ -115,7 +115,7 @@ RUN cd / && git clone -b alquimia_compile_fix --recursive https://github.com/bsu
 ## Checkout ELM model
 # Submodule update command is replacing ssh with https so authentication to github isn't required
 RUN cd / \
-    && git -c http.sslVerify=false -c url."https://github.com/".insteadOf="git@github.com:" clone -b bsulman/lnd/alquimia_salinity --single-branch --depth 1 --recurse-submodules --shallow-submodules https://github.com/bsulman/E3SM.git \
+    && git -c http.sslVerify=false -c url."https://github.com/".insteadOf="git@github.com:" clone -b bsulman/lnd/alquimia_restartfix --single-branch --depth 1 --recurse-submodules --shallow-submodules https://github.com/bsulman/E3SM.git \
     # && cd /E3SM \
     # && git -c http.sslVerify=false -c url."https://github.com/".insteadOf="git@github.com:" submodule update --init --recursive \
     && chown $USER:dockerusers /E3SM \
@@ -170,14 +170,14 @@ USER ${USER}
 ## Install OLMT tool into the container to use with site or ensemble simulations
 # This uses a stable release of the Arctic-userpft branch of OLMT
 RUN cd /tools \
-    && git -c http.sslVerify=false clone -b bsulman/coastal_main_rebased --single-branch --depth 1 https://github.com/dmricciuto/OLMT.git \
+    && git -c http.sslVerify=false clone -b bsulman/coastal_main --single-branch --depth 1 https://github.com/dmricciuto/OLMT.git \
     && chown $USER:dockerusers -R /tools/OLMT \
     && chmod -R 777 /tools/OLMT
 
 # Copy scripts into /scripts to make availible to users
 RUN cd /scripts \
-    && wget $TOOLS_REPOSITORY_RAW_URL/main/met_scripts/ngeearctic/download_elm_singlesite_forcing_data.sh \
-    && wget $TOOLS_REPOSITORY_RAW_URL/main/elm_scripts/ngeearctic_elm_scripts/olmt_scripts/ngeearctic_site_fullrun_userdata_docker.sh \
+    && wget $TOOLS_REPOSITORY_RAW_URL/master/met_scripts/ngeearctic/download_elm_singlesite_forcing_data.sh \
+    && wget $TOOLS_REPOSITORY_RAW_URL/master/elm_scripts/ngeearctic_elm_scripts/olmt_scripts/ngeearctic_site_fullrun_userdata_docker.sh \
     && mv ngeearctic_site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
     && chown $USER:dockerusers download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh \
