@@ -29,9 +29,9 @@ RUN cd / \
     
 # where to get the ELM source code
 #ENV REPOSITORY_URL=https://github.com/FASSt-simulation/simulation_containers
-ENV REPOSITORY_URL=https://github.com/fmyuan/elm_containers
-ENV REPOSITORY_RAW_URL=https://raw.githubusercontent.com/fmyuan/elm_containers
-ENV TOOLS_REPOSITORY_RAW_URL=https://raw.githubusercontent.com/FASSt-simulation/fasst_simulation_tools
+ENV REPOSITORY_URL=https://github.com/ORNLngee/simulation_containers
+ENV REPOSITORY_RAW_URL=https://raw.githubusercontent.com/ORNLngee/simulation_containers
+ENV TOOLS_REPOSITORY_RAW_URL=https://raw.githubusercontent.com/ORNLngee/ngeeA_elm_simulation_tools
 ENV USER=modeluser
 
 # Add new group, user, and user directory with user permissions
