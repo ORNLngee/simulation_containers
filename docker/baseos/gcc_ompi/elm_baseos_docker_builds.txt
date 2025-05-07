@@ -7,10 +7,11 @@
 
 #### Build the AMD64/ARM64 compliant baseOS image
 # Step 1. Create a new docker builder (only needs to be done once in your system)
-docker buildx create --name multibuilder --use
+# a note on 05-08-2025: no need anymore - the default builders are multi-platform ready.
+# docker buildx create --name multibuilder --use
 
 # Step 2. Change to local simulation_containers git repo directory
 cd $HOME/mygithub/E3SM_REPOS/simulation_containers
 
 # Step 3. Build an AMD64/ARM64 compliant version of the baseOS container. This is for local builds only
-docker buildx build -t yuanfornl/elm_baseos:gcc940ompi412_multiarch --platform linux/amd64,linux/arm64 -f docker/baseos/gcc_ompi/Dockerfile .
+docker buildx build --load -t yuanfornl/elm_baseos:gcc940ompi412_multiarch --platform linux/amd64,linux/arm64 -f docker/baseos/gcc_ompi/Dockerfile .
