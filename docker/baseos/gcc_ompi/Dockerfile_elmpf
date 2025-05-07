@@ -1,0 +1,258 @@
+# -------------------------------------------------------------------------------------------
+#
+# Ubuntu OS embeded scipy-notebook docker container for building ELM-PFLOTRAN/
+# compilers: gcc/openmpi
+# python package manager: conda/(micro)mamba
+# docker image: docker.io/yuanfornl/elmpf_baseos
+#
+# -------------------------------------------------------------------------------------------
+#
+
+## scipy-notebook from quay.io, which based on ubuntu linux OS. Current: ubuntu-24.04, gcc-13.3
+#    note: (1) conda packages are installed /opt/conda
+#          (2) python version: 3.12.8
+#          (3) default user is: jovyan (i.e. /home/jovyan)
+FROM quay.io/jupyter/scipy-notebook:2025-01-06
+
+LABEL maintainer.name="F.-M. Yuan" \
+      maintainer.email="yuanf@ornl.gov" \
+      author.name="Fengming Yuan" \
+      author.email="yuanf@ornl.gov" \
+      description="Ubuntu OS embeded scipy-notebook based images (gcc,python3, etc) + openmpi, loaded with necessary dependencies for building ELM-PFLOTRAN images"
+
+## Update the OS system and essential dependencies, not included in scipy-notebook container 
+# (note: USER root is a must for apt-get to work)
+USER root
+RUN apt-get update -y \
+    && apt-get install -y \
+    apt-transport-https \
+    apt-utils \
+    build-essential \
+    cmake \
+    gsl-bin \
+    libblas-dev \
+    libcurl4-openssl-dev \
+    libffi-dev \
+    libgsl-dev \
+    liblapack-dev \
+    libxml2 \
+    libxml2-dev \
+    libxml-libxml-perl \
+    libxml2-utils \
+    libudunits2-dev \
+    locales \
+    m4 \
+    nco \
+    rsync \
+    udunits-bin \
+    vim \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean all
+
+# remove gcc-13 and install gcc/gfortran-12
+RUN apt-get remove gcc gcc-13 -y \
+    && apt-get autoremove -y
+    
+RUN apt-get update -y \
+    && apt-get install gcc-12 -y \
+    && apt-get install g++-12 -y \
+    && apt-get install gfortran-12 -y \
+    && apt-get install gdb -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean all
+
+RUN cd / \
+     && ln -sf /usr/bin/gcc-12 /usr/bin/gcc \
+     && ln -sf /usr/bin/gcc-ar-12 /usr/bin/gcc-ar \
+     && ln -sf /usr/bin/gcc-nm-12 /usr/bin/gcc-nm \
+     && ln -sf /usr/bin/gcc-ranlib-12 /usr/bin/gcc-ranlib \
+     && ln -sf /usr/bin/g++-12 /usr/bin/g++ \
+     && ln -sf /usr/bin/gfortran-12 /usr/bin/gfortran \
+     && ln -sf /usr/bin/cpp-12 /usr/bin/cpp \
+     && ln -sf /usr/bin/gcov-12 /usr/bin/gcov \
+     && ln -sf /usr/bin/gcov-dump-12 /usr/bin/gcov-dump \
+     && ln -sf /usr/bin/gcov-tool-12 /usr/bin/gcov-tool \
+     && apt-get update -y \
+     && apt-get upgrade -y
+
+## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
+#   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
+RUN ln -sf /usr/bin/ncap2 /usr/bin/ncap
+
+## Install program to configure locales
+RUN echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen \
+    && locale-gen
+## Set default locale for the environment
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+## check locales
+RUN locale -a
+
+
+## append PATH, LD_LIBRARY_PATH to /home/$NB_USER/.bashrc
+RUN echo "export PATH=$PATH ">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/opt/conda/lib">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
+# apt-get installs almost libs under /usr/lib/aarch64-linux-gnu for arm64,
+# while under /usr/lib/x86_64-linux-gnu for amd64.
+RUN export UNKNOWNLIBPATH=$(ls -d /usr/lib/*-linux-gnu) \
+    && echo "export LD_LIBRARY_PATH=$UNKNOWNLIBPATH:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+ 
+## additional python packages
+#    (1) installed by mamba/conda
+RUN cd /home/$NB_USER \
+    && mamba install configparser
+
+## OPENMPI installation 
+#  (NOTE: apt-get installed openmpi-bin & libopenmpi has issues of PATH when conda installing mpi4py)
+
+ARG OPENMPI_VERSION=4.1.8
+ENV MPI_DIR=/usr/local/openmpi
+RUN cd /home/$NB_USER \
+    && wget --no-check-certificate https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OPENMPI_VERSION}.tar.gz \
+    && tar -zxvf openmpi-${OPENMPI_VERSION}.tar.gz \
+    && cd openmpi-${OPENMPI_VERSION} \
+    && ./configure --enable-static --enable-shared --prefix=${MPI_DIR} \
+    && make \
+    && make install \
+    && cd /home/$NB_USER \
+    && rm -r openmpi-${OPENMPI_VERSION} \
+    && rm openmpi-${OPENMPI_VERSION}.tar.gz \
+    && ldconfig
+RUN cd /home/$NB_USER \
+    && echo "export PATH=${MPI_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=${MPI_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
+ENV PATH=${MPI_DIR}/bin:$PATH
+## additional python packages, including mpi4py which depending upon MPI
+#    (2) installed by pip. 
+#        NOTE: it appears that mamba/conda installing h5py,netCDF4,mpi4py (possibly needed by OLMT) may mess up later-on mpi-built libs
+RUN cd /home/$NB_USER \
+    && pip3 install h5py netCDF4 mpi4py
+
+    
+## TPLs
+# needs parallel versions of HDF5/netcdf4/petsc, which not available from debian (except for hdf5?)
+
+# set path variables
+ENV HDF5_DIR=/usr/local/tpls/netcdf-hdf5
+ENV NETCDF_PATH=/usr/local/tpls/netcdf-hdf5
+ENV PETSC_DIR=/usr/local/tpls/petsc
+
+## HDF5, both parallel and serial builds
+#https://support.hdfgroup.org/ftp/HDF5/releases/
+ARG HDF5_MAJOR_VERSION=1.12
+ARG HDF5_VERSION=1.12.1
+
+RUN cd /home/$NB_USER \
+    && mkdir -p ${HDF5_DIR} \
+    && wget --no-check-certificate https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-${HDF5_MAJOR_VERSION}/hdf5-${HDF5_VERSION}/src/hdf5-${HDF5_VERSION}.tar.gz \
+    && tar -xzf hdf5-${HDF5_VERSION}.tar.gz \
+    && cd hdf5-${HDF5_VERSION} \
+    && mkdir -p build \
+    && cd build \
+    && CC=mpicc FC=mpif90 ../configure --enable-fortran --enable-parallel --enable-static --enable-shared --prefix=${HDF5_DIR} \
+    && make \
+    && make install \
+    && cd .. \
+    && mkdir -p build2 \
+    && cd build2 \
+    && CC=gcc FC=gfortran ../configure --enable-fortran --disable-parallel --enable-static --enable-shared --prefix=${HDF5_DIR}-serial \
+    && make \
+    && make install \
+    && cd /home/$NB_USER \
+    && rm -r hdf5-${HDF5_VERSION} \
+    && rm hdf5-${HDF5_VERSION}.tar.gz
+ENV PATH=${HDF5_DIR}/bin:$PATH   
+RUN cd /home/$NB_USER \
+    && echo "export PATH=${HDF5_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=${HDF5_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
+## netCDF & netCDF-Fortran, both parallel and serial builds
+
+ARG NETCDF_C_VERSION=4.8.1
+RUN cd /home/$NB_USER \
+    && mkdir -p ${NETCDF_PATH} \
+    && wget --no-check-certificate https://downloads.unidata.ucar.edu/netcdf-c/${NETCDF_C_VERSION}/netcdf-c-${NETCDF_C_VERSION}.tar.gz \
+    && tar -xzf netcdf-c-${NETCDF_C_VERSION}.tar.gz \
+    && cd netcdf-c-${NETCDF_C_VERSION} \
+    && mkdir -p build \
+    && cd build \
+    && CC=mpicc CPPFLAGS="-Dgfortran -I${HDF5_DIR}/include" CFLAGS=-I${HDF5_DIR}/include LDFLAGS=-L${HDF5_DIR}/lib \
+       ../configure --enable-netcdf4 --enable-shared --disable-dap_remote_tests --prefix=${NETCDF_PATH} \
+    && make \
+    && make install \
+    && cd .. \
+    && mkdir -p build2 \
+    && cd build2 \
+    && CC=gcc CPPFLAGS="-Dgfortran -I${HDF5_DIR}-serial/include" CFLAGS=-I${HDF5_DIR}-serial/include LDFLAGS=-L${HDF5_DIR}-serial/lib \
+       ../configure --enable-hdf5 --disable-parallel4 --enable-shared --disable-dap --disable-dap_remote_tests --prefix=${NETCDF_PATH}-serial \
+    && make \
+    && make install \
+    && cd /home/$NB_USER \
+    && rm -r netcdf-c-${NETCDF_C_VERSION} \
+    && rm netcdf-c-${NETCDF_C_VERSION}.tar.gz
+ENV PATH=${NETCDF_PATH}/bin:$PATH   
+RUN cd /home/$NB_USER \
+    && echo "export PATH=${NETCDF_PATH}/bin:\$PATH">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=${NETCDF_PATH}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+       
+ARG NETCDF_FORTRAN_VERSION=4.6.1
+RUN cd /home/$NB_USER \
+    && wget --no-check-certificate https://downloads.unidata.ucar.edu/netcdf-fortran/${NETCDF_FORTRAN_VERSION}/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz \
+    && tar -xzf netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz \
+    && cd netcdf-fortran-${NETCDF_FORTRAN_VERSION} \
+    && mkdir -p build \
+    && cd build \
+    && CC=mpicc FC=mpif90 CPPFLAGS="-Dgfortran -I${NETCDF_PATH}/include -I${HDF5_DIR}/include" CFLAGS=$(nc-config --cflags) FCFLAGS=$(nc-config --cflags) LDFLAGS=$(nc-config --libs --static) LIBS="-L$HDF5_DIR/lib" \
+    ../configure --prefix=${NETCDF_PATH} --enable-shared \
+    && make \
+    && make install \
+    && cd .. \
+    && mkdir -p build2 \
+    && cd build2 \
+    && CC=gcc FC=gfortran CPPFLAGS="-Dgfortran -I${NETCDF_PATH}-serial/include" CFLAGS=$(${NETCDF_PATH}-serial/bin/nc-config --cflags) FCFLAGS=$(${NETCDF_PATH}-serial/bin/nc-config --cflags) LDFLAGS=$(${NETCDF_PATH}-serial/bin/nc-config --libs --static) \
+    ../configure --prefix=${NETCDF_PATH}-serial --enable-shared \
+    && make \
+    && make install \
+    && cd /home/$NB_USER \
+    && rm -r netcdf-fortran-${NETCDF_FORTRAN_VERSION} \
+    && rm netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz
+
+# ELM building envs require 'NETCDF_PATH' or 'NETCDF_C_PATH, NETCDF_FORTRAN_PATH'
+RUN cd /home/$NB_USER \
+    && echo "export NETCDF_PATH=${NETCDF_PATH}">>/home/$NB_USER/.bashrc \
+    && echo "export NETCDF_C_PATH=${NETCDF_PATH}">>/home/$NB_USER/.bashrc \
+    && echo "export NETCDF_FORTRAN_PATH=${NETCDF_PATH}">>/home/$NB_USER/.bashrc
+
+## PETSc
+ARG PETSC_VERSION=3.20.6
+RUN cd /home/$NB_USER \
+    && mkdir -p ${PETSC_DIR} \
+    && wget --no-check-certificate https://web.cels.anl.gov/projects/petsc/download/release-snapshots/petsc-${PETSC_VERSION}.tar.gz \
+    && tar -xzvf petsc-${PETSC_VERSION}.tar.gz \
+    && cd petsc-${PETSC_VERSION} \
+    && wget --no-check-certificate https://github.com/ORNLngee/simulation_containers/raw/master/docker/baseos/gcc_ompi/build_petsc-x.sh \
+    && sh ./build_petsc-x.sh \
+    && cd /home/$NB_USER \
+    && rm -r petsc-${PETSC_VERSION} \
+    && rm petsc-${PETSC_VERSION}.tar.gz
+
+# PFLOTRAN building envs require 'PETSC_DIR'
+RUN cd /home/$NB_USER \
+    && echo "export PETSC_DIR=${PETSC_DIR}">>/home/$NB_USER/.bashrc
+        
+## need to change container user from 'root' back to 'jovyan' and ownership of /home/jovyan. NOTE this is the default user of $NB_USER
+RUN cd / \
+    && chown $NB_USER -R /home/$NB_USER
+USER $NB_USER
+
+    
+### EOF
