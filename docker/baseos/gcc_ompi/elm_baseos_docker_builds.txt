@@ -1,0 +1,16 @@
+# Sources:
+# https://matt-wxw.medium.com/build-docker-images-for-platform-arm64-apple-m1-and-amd64-on-apple-m1-with-docker-desktop-7c6dd5f7f325
+# https://andrewlock.net/creating-multi-arch-docker-images-for-arm64-from-windows/
+
+# authored in April 2022, by Shawn Serbin @BNL
+# updated on 2025-05-06, by Fengming Yuan @ORNL.
+
+#### Build the AMD64/ARM64 compliant baseOS image
+# Step 1. Create a new docker builder (only needs to be done once in your system)
+docker buildx create --name multibuilder --use
+
+# Step 2. Change to local simulation_containers git repo directory
+cd $HOME/mygithub/E3SM_REPOS/simulation_containers
+
+# Step 3. Build an AMD64/ARM64 compliant version of the baseOS container. This is for local builds only
+docker buildx build -t yuanfornl/elm_baseos:gcc940ompi412_multiarch --platform linux/amd64,linux/arm64 -f docker/baseos/gcc_ompi/Dockerfile .
