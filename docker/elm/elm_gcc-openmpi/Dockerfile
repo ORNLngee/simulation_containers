@@ -148,5 +148,8 @@ RUN cd /scripts \
     && cd /
 
 USER ${USER}
-RUN export USER=${USER}
+RUN export USER=${USER} \
+    && git config --global user.email "modeluser@docker.org" \
+    && git config --global user.name "modeluser@docker.org"
+    
 ## END
