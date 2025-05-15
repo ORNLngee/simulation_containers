@@ -38,10 +38,11 @@
       </mpirun>
       <module_system type="none"/>
       <environment_variables>
-        <env name="HDF5_HOME">/usr/local/hdf5</env>
-        <env name="NETCDF_PATH">/usr/local/netcdf</env>
-        <env name="NETCDF_C_PATH">/usr/local/netcdf</env>
-        <env name="NETCDF_FORTRAN_PATH">/usr/local/netcdf</env>
+        <env name="HDF5_HOME">/usr/local/tpls/hdf5</env>
+        <env name="NETCDF_PATH">/usr/local/tpls/netcdf</env>
+        <env name="NETCDF_C_PATH">/usr/local/tpls/netcdf</env>
+        <env name="NETCDF_FORTRAN_PATH">/usr/local/tpls/netcdf</env>
+        <env name="PETSC_DIR">/usr/local/tpls/petsc</env>
     </environment_variables>
    </machine>
 </config_machines>
