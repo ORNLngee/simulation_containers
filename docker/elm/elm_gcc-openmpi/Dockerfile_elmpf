@@ -1,0 +1,174 @@
+# -------------------------------------------------------------------------------------------
+#
+# Ubuntu OS embeded scipy-notebook docker container for building ELM-PFLOTRAN/
+# compilers: gcc/openmpi
+# python package manager: conda/(micro)mamba
+# docker image: docker.io/yuanfornl/elmpf_docker2025:scipy-nb_20250106
+#
+# -------------------------------------------------------------------------------------------
+#
+
+FROM yuanfornl/elmpf_baseos:scipy-nb_20250106
+
+LABEL maintainer.name="Fengming Yuan" \
+      maintainer.email="yuanf@ornl.gov" \
+      author.name="Fengming Yuan, Benjam L. Sulman" \
+      author.email="yuanf@ornl.gov, bsulman@ornl.gov" \
+      description="ELM/PFLOTRAN" \
+      version.elm="elm" \
+      version.baseos="gcc/openmpi-4.1.x/python-3.12x"
+    
+## where to get the ELM/PFLOTRAN, tools and containers source code
+ENV E3SM_REPO_URL=https://github.com/ORNLngee/E3SM_ORNL_IM.git
+ENV OLMT_REPO_URL=https://github.com/dmricciuto/OLMT.git
+ENV CONTAINERS_REPO_URL=https://github.com/ORNLngee/simulation_containers
+ENV TOOLS_REPO_URL=https://github.com/ORNLngee/ngeeA_elm_simulation_tools
+
+## default USER is ${NB_USER}, i.e. jovyan (UID 1000, GID 100) of group 'user'  
+ENV USER=${NB_USER}
+
+## create data mount point in container
+RUN cd /home/$USER \
+    && mkdir -p inputdata \
+    && mkdir -p output \
+    && mkdir -p output/baselines \
+    && mkdir -p output/archive \
+    && mkdir -p output/cases \
+    && mkdir -p output/scratchs \
+    && mkdir -p tools \
+    && mkdir -p tools/scripts \
+    && mkdir -p tools/cprnc \
+    && mkdir -p models \
+    && mkdir -p /home/$USER/.cime \
+    && chown $USER inputdata \
+    && chown $USER -R output \
+    && chown $USER -R tools \
+    && chown $USER -R models \
+    && chown $USER /home/$USER/.cime \
+    && cd /home/$USER
+
+RUN cd /home/$USER/.cime \
+    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config \
+    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config_compilers.xml \
+    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config_machines.xml \
+    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/gnu_docker.cmake \
+    && cd /home/$USER
+
+## for some unknown reason, docker may be trying to git connect to somewhere, which cause error and exit building.
+#   message like: fatal: unable to auto-detect email address (got 'jovyan@buildkitsandbox.(none)')'
+RUN export USER=${NB_USER} \
+    && git config --global user.email "modeluser@dockerusers.io" \
+    && git config --global user.name "modeluser@dockerusers.io"
+
+## Checkout ELM model
+##  note: there are 2 perl commands, which edit 'git@github.com:' to 'https://github.com/'
+
+RUN cd /home/$USER/models \
+    && git -c http.sslVerify=false clone $E3SM_REPO_URL ./E3SM \
+    && cd ./E3SM \
+    && perl -pi -e 's/com:/com\//g' ./.gitmodules \
+    && perl -pi -e 's/git@/https:\/\//g' ./.gitmodules \
+    && git submodule init \
+    && git submodule update -f --recursive \
+    && git checkout ngee-arctic-IM-merged
+
+## ------------------------------------------------------------------------------
+## Build example case as a test  --- only used with initial Docker build testing
+RUN cd /home/$USER/models/E3SM \
+    && export CASE_NAME=/home/$USER/output/f19_g16.IGSWELMBGC \
+    && cd ./cime/scripts \
+    && ./create_newcase --case ${CASE_NAME} --res f19_g16 --compset IGSWELMBGC --mach docker --compiler gnu \
+    && cd ${CASE_NAME} \
+    && ./xmlchange DATM_CLMNCEP_YR_END=1995 \
+    && ./xmlchange PIO_TYPENAME=netcdf \
+    && ./xmlchange RUNDIR=${PWD}/run \
+    && ./xmlchange EXEROOT=${PWD}/bld \
+    && ./xmlchange NTASKS=1 \
+    && ./xmlchange DIN_LOC_ROOT=$PWD \
+    && cd ${CASE_NAME} \
+    && ./case.setup \
+    && ./case.build
+RUN echo "*** ELM test build completed successfully ***"
+RUN cd /home/$USER \
+    && rm -rf /home/$USER/output/f19_g16.IGSWELMBGC
+## ------------------------------------------------------------------------------
+
+## Build 'cprnc' used to run land model test suites
+## note: from testing on macOS with M3 Si chip
+# when using CMake 4.x:      -DCMAKE_Fortran_FLAGS="-I${NETCDF_PATH}-serial/include" -DCMAKE_EXE_LINKER_FLAGS="-L${NETCDF_PATH}-serial/lib -lnetcdff" \
+# when using CMake 3.x:      -DCMAKE_PREFIX_PATH=${NETCDF_PATH}-serial
+
+RUN cd /home/$USER/models/E3SM/cime \
+    && perl -pi -e 's/com:/com\//g' ./.gitmodules \
+    && perl -pi -e 's/git@/https:\/\//g' ./.gitmodules \
+    && git submodule init \
+    && git submodule update -f --recursive \
+    && cd ./CIME/non_py/cprnc \
+    && mkdir -p bld \
+    && cd bld \
+    && CC=gcc FC=gfortran cmake --fresh ../ \
+       -DCMAKE_INSTALL_PREFIX=/home/$USER/tools/cprnc \
+       -DCMAKE_PREFIX_PATH=/usr/local/tpls/netcdf-hdf5-serial \
+    && make all \
+    && make install \
+    && cd .. \
+    && rm -rf ./bld \
+    && cd /home/$USER/tools/cprnc \
+    && chown $USER -R ./ \
+    && chmod -R 755 ./
+
+## Install OLMT tool into the container to use with site or ensemble simulations
+# This uses a stable release of the Arctic-userpft branch of OLMT
+RUN cd /home/$USER/tools \
+    && git -c http.sslVerify=false clone -b Arctic-userpft --single-branch --depth 1 $OLMT_REPO_URL \
+    && chown $USER -R ./OLMT \
+    && chmod -R 755 ./OLMT \
+    && cd /home/$USER
+
+## Copy a few scripts into /scripts to make availible to users
+#    (1) downloading pt-e3sm-inputdata
+RUN cd /home/$USER/tools/scripts \
+    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/download_elm_singlesite_forcing_data.sh \
+    && chown $USER download_elm_singlesite_forcing_data.sh \
+    && chmod +x download_elm_singlesite_forcing_data.sh
+
+#    (2) an example OLMT script to setup/configure/build/run docker ELM
+RUN cd /home/$USER/tools/scripts \
+    && wget $TOOLS_REPO_URL/raw/master/olmt_scripts/example_site_fullrun_userdata_docker.sh \
+    && mv example_site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
+    && chown $USER OLMT_docker_example.sh \
+    && chmod +x OLMT_docker_example.sh \
+    && cd /home/$USER
+
+#    (3) a script for testing docker ELM by 42 fluxnet sites data
+RUN cd /home/$USER/tools/scripts \
+    && wget $TOOLS_REPO_URL/raw/master/elm_scripts/test_docker_42fluxnetsites_example.sh \
+    && chown $USER test_docker_42fluxnetsites_example.sh \
+    && chmod +x test_docker_42fluxnetsites_example.sh \
+    && cd /home/$USER
+
+## ------------------------------------------------------------------------------
+## ALQUIMIA and PFLOTRAN chem libs
+ARG ALQUIMIA_PATH=/home/$USER/tools/ELM-PFLOTRAN_ROOT/alquimia/v2021
+ARG PFLOTRAN_PATH=/home/$USER/tools/ELM-PFLOTRAN_ROOT/pflotran-elm-interface/v2021
+RUN cd /home/$USER/tools \
+    && mkdir -p $ALQUIMIA_PATH \
+    && mkdir -p $PFLOTRAN_PATH \
+    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/elm_gcc-openmpi/buildAlquimia_pflotran.sh \
+    && git -c http.sslVerify=false clone -b bsulman/pflotran-elm-interface --single-branch --depth 1 \
+       https://github.com/fmyuan/pflotran-elm-interface.git \
+    && git -c http.sslVerify=false clone -b bsulman/pflotran_SOMdec_reactions --single-branch --depth 1 \
+       https://github.com/fmyuan/alquimia-dev.git \
+    && bash ./buildAlquimia_pflotran.sh $ALQUIMIA_PATH $PFLOTRAN_PATH \
+    && rm -rf pflotran-elm-interface \
+    && rm -rf alquimia-dev \
+    && cd /home/$USER/.cime \
+    && echo ''>>gnu_docker.cmake \    
+    && echo 'set(ALQUIMIA_PATH $ALQUIMIA_PATH)'>>gnu_docker.cmake \
+    && echo 'set(PFLOTRAN_PATH $PFLOTRAN_PATH)'>>gnu_docker.cmake
+    
+RUN echo "*** ALQUIMIA-PFLOTRAN chem libs build completed successfully ***"
+
+    
+## ------------------------------------------------------------------------------
+## EOF
