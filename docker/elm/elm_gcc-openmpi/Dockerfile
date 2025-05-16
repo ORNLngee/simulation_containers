@@ -72,15 +72,15 @@ RUN cd / \
     && git submodule update -f --recursive
 
 RUN cd /.cime \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_compilers.xml \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_machines.xml \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/gnu_docker.cmake \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/cime_config/config \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/cime_config/config_compilers.xml \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/cime_config/config_machines.xml \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/cime_config/gnu_docker.cmake \
     && cd /home/$USER/.cime \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_compilers.xml \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/config_machines.xml \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/cime_config/gnu_docker.cmake \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/cime_config/config \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/cime_config/config_compilers.xml \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/cime_config/config_machines.xml \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/cime_config/gnu_docker.cmake \
     && cd /
 
 # Provide a symlink between ncap and ncap2 for OLMT 
@@ -97,26 +97,26 @@ USER ${USER}
 
 ## ------------------------------------------------------------------------------
 ## Build example case as a test  --- only used with initial Docker build testing
-#RUN cd /E3SM/cime/scripts \
-#    && export CASE_NAME=/output/f19_g16.IGSWELMBGC \
-#    && cd /E3SM/cime/scripts \
-#    && ./create_newcase --case ${CASE_NAME} --res f19_g16 --compset IGSWELMBGC --mach docker --compiler gnu \
-#    && cd ${CASE_NAME} \
-#    && ./xmlchange DATM_CLMNCEP_YR_END=1995 \
-#    && ./xmlchange PIO_TYPENAME=netcdf \
-#    && ./xmlchange RUNDIR=${PWD}/run \
-#    && ./xmlchange EXEROOT=${PWD}/bld \
-#    && ./xmlchange NTASKS=1 \
-#    && ./xmlchange DIN_LOC_ROOT=$PWD \
-#    && cd ${CASE_NAME} \
-#    && ./case.setup \
-#    && ./case.build
+RUN cd /E3SM/cime/scripts \
+    && export CASE_NAME=/output/f19_g16.IGSWELMBGC \
+    && cd /E3SM/cime/scripts \
+    && ./create_newcase --case ${CASE_NAME} --res f19_g16 --compset IGSWELMBGC --mach docker --compiler gnu \
+    && cd ${CASE_NAME} \
+    && ./xmlchange DATM_CLMNCEP_YR_END=1995 \
+    && ./xmlchange PIO_TYPENAME=netcdf \
+    && ./xmlchange RUNDIR=${PWD}/run \
+    && ./xmlchange EXEROOT=${PWD}/bld \
+    && ./xmlchange NTASKS=1 \
+    && ./xmlchange DIN_LOC_ROOT=$PWD \
+    && cd ${CASE_NAME} \
+    && ./case.setup \
+    && ./case.build
 
-#RUN echo "*** ELM test build completed successfully ***"
+RUN echo "*** ELM test build completed successfully ***"
 
 ## Remove test build
-#RUN cd / \
-#    && rm -rf /output/f19_g16.IGSWELMBGC
+RUN cd / \
+    && rm -rf /output/f19_g16.IGSWELMBGC
 ## ------------------------------------------------------------------------------
 
 ## Install OLMT tool into the container to use with site or ensemble simulations
@@ -136,7 +136,7 @@ RUN cd /scripts \
 #    (2) an example OLMT script to setup/configure/build/run docker ELM
 RUN cd /scripts \
     && wget $TOOLS_REPOSITORY_URL/raw/master/olmt_scripts/example_site_fullrun_userdata_docker.sh \
-    && mv ngeearctic_site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
+    && mv example_site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
     && chown $USER:dockerusers OLMT_docker_example.sh \
     && chmod +x OLMT_docker_example.sh
 

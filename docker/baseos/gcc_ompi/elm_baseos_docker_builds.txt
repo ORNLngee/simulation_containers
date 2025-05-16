@@ -7,7 +7,8 @@
 
 #### Build the AMD64/ARM64 compliant baseOS image
 # Step 1. Create a new docker builder (only needs to be done once in your system)
-docker buildx create --name multibuilder --use
+# (optional) new Docker no needs any more for this step, due to multi-platform builder ready to pull for use by default
+#docker buildx create --name multibuilder --use
 
 # Step 2. Change to local simulation_containers git repo directory
 cd $HOME/mygithub/E3SM_REPOS/simulation_containers
