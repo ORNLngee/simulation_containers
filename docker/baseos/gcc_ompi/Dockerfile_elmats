@@ -1,0 +1,261 @@
+# -------------------------------------------------------------------------------------------
+#
+# Ubuntu OS embeded scipy-notebook docker container for building ELM-ATS-PFLOTRAN/
+# compilers: gcc/openmpi
+# python package manager: conda/(micro)mamba
+# docker image: docker.io/yuanfornl/elmats_baseos
+#
+# -------------------------------------------------------------------------------------------
+#
+
+## scipy-notebook from quay.io, which based on ubuntu linux OS. Current: ubuntu-24.04, gcc-13.3
+#    note: (1) conda packages are installed /opt/conda
+#          (2) python version: 3.12.8
+#          (3) default user is: jovyan (i.e. /home/jovyan)
+FROM quay.io/jupyter/scipy-notebook:2025-01-06
+
+LABEL maintainer.name="F.-M. Yuan" \
+      maintainer.email="yuanf@ornl.gov" \
+      author.name="Fengming Yuan" \
+      author.email="yuanf@ornl.gov" \
+      description="Ubuntu OS embeded scipy-notebook based images (gcc,python3, etc) + openmpi, loaded with necessary dependencies for building ELM-ATS-PFLOTRAN images"
+
+## Update the OS system and essential dependencies, not included in scipy-notebook container 
+# (note: USER root is a must for apt-get to work)
+USER root
+RUN apt-get update -y \
+    && apt-get install -y \
+    apt-transport-https \
+    apt-utils \
+    build-essential \
+    cmake \
+    gsl-bin \
+    libblas-dev \
+    libcurl4-openssl-dev \
+    libffi-dev \
+    libgsl-dev \
+    liblapack-dev \
+    libxml2 \
+    libxml2-dev \
+    libxml-libxml-perl \
+    libxml2-utils \
+    libudunits2-dev \
+    locales \
+    m4 \
+    nco \
+    rsync \
+    udunits-bin \
+    vim \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean all
+
+# gfortran and gdb    
+RUN apt-get update -y \
+    && apt-get install gfortran -y \
+    && apt-get install gdb -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean all
+
+## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
+#   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
+RUN ln -sf /usr/bin/ncap2 /usr/bin/ncap
+
+## Install program to configure locales
+RUN echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen \
+    && locale-gen
+## Set default locale for the environment
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+## check locales
+RUN locale -a
+
+
+## append PATH, LD_LIBRARY_PATH to /home/$NB_USER/.bashrc
+RUN echo "export PATH=$PATH ">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/opt/conda/lib">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
+# apt-get installs almost libs under /usr/lib/aarch64-linux-gnu for arm64,
+# while under /usr/lib/x86_64-linux-gnu for amd64.
+RUN export UNKNOWNLIBPATH=$(ls -d /usr/lib/*-linux-gnu) \
+    && echo "export LD_LIBRARY_PATH=$UNKNOWNLIBPATH:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+ 
+## additional python packages
+#    (1) installed by mamba/conda
+RUN cd /home/$NB_USER \
+    && mamba install configparser
+
+## OPENMPI installation 
+#  (NOTE: apt-get installed openmpi-bin & libopenmpi has issues of PATH when conda installing mpi4py)
+
+ARG OPENMPI_VERSION=4.1.8
+ENV MPI_DIR=/usr/local/openmpi
+ENV MPINAME=openmpi
+RUN cd /home/$NB_USER \
+    && wget --no-check-certificate https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OPENMPI_VERSION}.tar.gz \
+    && tar -zxvf openmpi-${OPENMPI_VERSION}.tar.gz \
+    && cd openmpi-${OPENMPI_VERSION} \
+    && ./configure --enable-static --enable-shared --prefix=${MPI_DIR} \
+    && make \
+    && make install \
+    && cd /home/$NB_USER \
+    && rm -r openmpi-${OPENMPI_VERSION} \
+    && rm openmpi-${OPENMPI_VERSION}.tar.gz \
+    && ldconfig
+RUN cd /home/$NB_USER \
+    && echo "export PATH=${MPI_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=${MPI_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
+ENV PATH=${MPI_DIR}/bin:$PATH
+## additional python packages, including mpi4py which depending upon MPI
+#    (2) installed by pip. 
+#        NOTE: it appears that mamba/conda installing h5py,netCDF4,mpi4py (possibly needed by OLMT) may mess up later-on mpi-built libs
+#RUN cd /home/$NB_USER \
+#    && pip3 install h5py netCDF4 mpi4py
+
+
+## TPLs
+# needs parallel versions of HDF5/netcdf4/petsc, which not available from debian (except for hdf5?)
+    
+## python packages, branch of 'fmyuan/master-for-scipyNB' from Watershed Waterflow, managed by mamba
+#  (note: branch 'fmyuan/master-for-scipyNB' is branched master with minimal modification
+#    (1) package env 'watershed-workflow-master' under /home/$NB_USER/.local/share/mamba/envs
+ENV MAMBA_ROOT_PREFIX=/home/$NB_USER/.local/share/mamba
+RUN cd /home/$NB_USER \
+    && eval "$(mamba shell hook --shell bash)" \
+    && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
+    && source /home/$NB_USER/.bashrc \
+    && mamba env create -n watershed-workflow-master --root-prefix=$MAMBA_ROOT_PREFIX
+    
+#    (2) install python packages for watershed-workflow
+RUN cd /home/$NB_USER \
+    && eval "$(mamba shell hook --shell bash)" \
+    && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
+    && mamba activate --stack watershed-workflow-master \
+    && mkdir -p /home/$NB_USER/tools \
+    && cd /home/$NB_USER/tools \
+    && git clone https://github.com/fmyuan/watershed-workflow.git \
+    && cd ./watershed-workflow \
+    && git switch fmyuan/master-for-scipyNB \
+   # && mamba install -y -f ./environments/packages_base.txt \
+    && mamba install -y -f ./environments/environment-DEV-docker.yml \
+    && pip3 install meshpy==2022.1.3 \
+    && mamba install anaconda::_libgcc_mutex
+# (note: 'meshpy' and '_libgcc_mutex' not available on conda-forge by default    
+
+#    (3) install watershed-workflow package
+RUN cd /home/$NB_USER \
+    && eval "$(mamba shell hook --shell bash)" \
+    && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
+    && mamba activate --stack watershed-workflow-master \
+    && cd /home/$NB_USER/tools/watershed-workflow \
+    && python -m pip install -e . \
+    && cp ./environments/docker_watershed_workflowrc /home/$NB_USER/.watershed_workflowrc \
+    && cd /home/$NB_USER \
+    && echo "">>/home/$NB_USER/.bashrc \
+    && echo "#-------- mamba managed WW conda/python packages ----------">>/home/$NB_USER/.bashrc \
+    && echo "mamba activate --stack watershed-workflow-master">>/home/$NB_USER/.bashrc \
+    && mkdir -p /home/$NB_USER/work/data \
+    && echo "export WATERSHED_WORKFLOW_DIR=/home/$NB_USER/work">>/home/$NB_USER/.bashrc
+
+    
+## Amanzi-TPLs only installation
+ARG ATS_BASE=/home/$NB_USER/ATS_ROOT
+ARG TPLS_VER=0.98.11
+ARG TPLS_BUILD_TYPE=opt
+ARG AMANZI_TPLS_DIR=/usr/local/amanzi-root/tpls-${TPLS_VER}-${TPLS_BUILD_TYPE}
+ARG AMANZI_TOOLS_DIR=/usr/local/amanzi-root/tools
+ARG AMANZI_DIR=${ATS_BASE}/install/amanzi-ats/master-opt_tpls-${TPLS_VER}-${TPLS_BUILD_TYPE}
+
+ARG AMANZI_SRC_DIR=/home/$NB_USER/models/amanzi
+ARG ATS_SRC_DIR=$AMANZI_SRC_DIR/src/physics/ats
+
+RUN cd /home/$NB_USER \
+    && eval "$(mamba shell hook --shell bash)" \
+    && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
+    && mamba activate --stack watershed-workflow-master \
+    && mkdir -p models \
+    && cd ./models \
+    && wget --no-check-certificate https://github.com/ORNLngee/simulation_containers/raw/master/docker/baseos/gcc_ompi/build_Amanzi_tpls.sh \
+    && git clone -b master --depth 1 --single-branch https://github.com/amanzi/amanzi.git \
+    && cd ${AMANZI_SRC_DIR} \
+    && git submodule init \
+    && git submodule update -f --recursive \
+    && cd ${ATS_SRC_DIR} \
+    && git submodule init \
+    && git submodule update -f --recursive \
+    && cd ${AMANZI_SRC_DIR} \
+    && mkdir -p ${AMANZI_TPLS_DIR} \
+    && bash ../build_Amanzi_tpls.sh $ATS_BASE $TPLS_VER $AMANZI_TPLS_DIR $AMANZI_DIR
+
+# TPLS built hdf5 fortran libs, 
+# but not included in PETSc libs settings even though options added following instructions
+RUN cd ${AMANZI_TPLS_DIR} \
+    && perl -pi -e 's/-lhdf5_hl -lhdf5/-lhdf5_hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5/g' \
+      ./petsc-3.20/lib/petsc/conf/petscvariables
+
+RUN cd /home/$NB_USER \
+    && echo "">>/home/$NB_USER/.bashrc \
+    && echo "#-------- ATS envs ----------">>/home/$NB_USER/.bashrc \
+    && echo "export ATS_BASE=$ATS_BASE">>/home/$NB_USER/.bashrc \
+    && echo "export AMANZI_TPLS_DIR=$AMANZI_TPLS_DIR">>/home/$NB_USER/.bashrc \
+    && echo "export AMANZI_DIR=$AMANZI_TPLS_DIR">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc \
+    && echo "export PATH=${AMANZI_TPLS_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=${AMANZI_TPLS_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "export PATH=${AMANZI_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=${AMANZI_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc
+# copying a few tools, mostly in python, embeded in amanzi-ats source codes SO THAT they're not upon source codes
+RUN cd /home/$NB_USER \
+    && cp -r ${AMANZI_SRC_DIR}/tools/amanzi_xml ${AMANZI_TOOLS_DIR} \
+    && mkdir -p ${AMANZI_TOOLS_DIR}/ats \
+    && mkdir -p ${AMANZI_TOOLS_DIR}/ats/tools \
+    && cp -r ${ATS_SRC_DIR}/tools/utils ${AMANZI_TOOLS_DIR}/ats/tools \
+    && cp -r ${ATS_SRC_DIR}/tools/meshing ${AMANZI_TOOLS_DIR}/ats/tools \
+    && cp -r ${ATS_SRC_DIR}/tools/input_converters ${AMANZI_TOOLS_DIR}/ats/tools \
+    && rm -rf ${ATS_SRC_DIR} \
+    && rm -rf ${AMANZI_SRC_DIR} \
+    && echo "">>/home/$NB_USER/.bashrc \
+    && echo "export PYTHONPATH=${AMANZI_TPLS_DIR}/SEACAS/lib:\$PYTHONPATH">>/home/$NB_USER/.bashrc \
+    && echo "export PYTHONPATH=${AMANZI_TOOLS_DIR}/amanzi_xml:\$PYTHONPATH">>/home/$NB_USER/.bashrc \
+    && echo "export amanzi_xml=${AMANZI_TOOLS_DIR}/amanzi_xml">>/home/$NB_USER/.bashrc \
+    && echo "export PYTHONPATH=${AMANZI_TOOLS_DIR}/ats/tools/utils:\$PYTHONPATH">>/home/$NB_USER/.bashrc \
+    && echo "export PYTHONPATH=${AMANZI_TOOLS_DIR}/ats/tools/meshing/meshing_ats:\$PYTHONPATH">>/home/$NB_USER/.bashrc \
+    && echo "export PYTHONPATH=${AMANZI_TOOLS_DIR}/ats/tools/input_converters:\$PYTHONPATH">>/home/$NB_USER/.bashrc \
+    && echo "#-------- ATS envs ----------">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+    
+# copying a script for building Amanzi-ats using already built-in TPLs
+RUN cd /home/$NB_USER/models \
+    && wget --no-check-certificate https://github.com/ORNLngee/simulation_containers/raw/master/docker/baseos/gcc_ompi/build_Amanzi-ats_notpls.sh \
+    && cd /home/$NB_USER
+
+## make a couple of softlinks for elm-pflotran's machine settings ('docker'), i.e. libs of 'netcdf4', 'hdf5', and/or 'petsc'
+RUN cd /usr/local \
+    && mkdir -p tpls \
+    && cd /usr/local/tpls \
+    && ln -sf ${AMANZI_TPLS_DIR} netcdf-hdf5 \
+    && cd /usr/local/tpls \
+    && ln -sf ${AMANZI_TPLS_DIR}/petsc-3.20 petsc \
+    && cd /home/$NB_USER \
+    && echo "">>/home/$NB_USER/.bashrc \
+    && echo "#-------- ELM/PFLOTRAN envs ----------">>/home/$NB_USER/.bashrc \
+    && echo "export HDF5_HOME=/usr/local/tpls/netcdf-hdf5">>/home/$NB_USER/.bashrc \
+    && echo "export NETCDF_PATH=/usr/local/tpls/netcdf-hdf5">>/home/$NB_USER/.bashrc \
+    && echo "export NETCDF_C_PATH=/usr/local/tpls/netcdf-hdf5">>/home/$NB_USER/.bashrc \
+    && echo "export NETCDF_FORTRAN_PATH=/usr/local/tpls/netcdf-hdf5">>/home/$NB_USER/.bashrc \
+    && echo "export PETSC_DIR=/usr/local/tpls/petsc">>/home/$NB_USER/.bashrc \
+    && echo "#-------- ELM/PFLOTRAN envs ----------">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+    
+## need to change container user from 'root' back to 'jovyan' and ownership of /home/jovyan. NOTE this is the default user of $NB_USER
+RUN cd / \
+    && chown $NB_USER -R /home/$NB_USER
+USER $NB_USER
+
+
+### EOF
