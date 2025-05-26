@@ -8,7 +8,7 @@
 # -------------------------------------------------------------------------------------------
 #
 
-## scipy-notebook from quay.io, which based on ubuntu linux OS. Current: ubuntu-24.04, gcc-13.3
+## scipy-notebook from quay.io, which based on ubuntu linux OS. Current: ubuntu-24.04, gcc-13.3 (will be upgraded to gcc-14)
 #    note: (1) conda packages are installed /opt/conda
 #          (2) python version: 3.12.8
 #          (3) default user is: jovyan (i.e. /home/jovyan)
@@ -50,29 +50,29 @@ RUN apt-get update -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean all
 
-# remove gcc-13 and install gcc/gfortran-12
+# remove gcc-13 and install gcc/gfortran-14.
 RUN apt-get remove gcc gcc-13 -y \
     && apt-get autoremove -y
     
 RUN apt-get update -y \
-    && apt-get install gcc-12 -y \
-    && apt-get install g++-12 -y \
-    && apt-get install gfortran-12 -y \
+    && apt-get install gcc-14 -y \
+    && apt-get install g++-14 -y \
+    && apt-get install gfortran-14 -y \
     && apt-get install gdb -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean all
 
 RUN cd / \
-     && ln -sf /usr/bin/gcc-12 /usr/bin/gcc \
-     && ln -sf /usr/bin/gcc-ar-12 /usr/bin/gcc-ar \
-     && ln -sf /usr/bin/gcc-nm-12 /usr/bin/gcc-nm \
-     && ln -sf /usr/bin/gcc-ranlib-12 /usr/bin/gcc-ranlib \
-     && ln -sf /usr/bin/g++-12 /usr/bin/g++ \
-     && ln -sf /usr/bin/gfortran-12 /usr/bin/gfortran \
-     && ln -sf /usr/bin/cpp-12 /usr/bin/cpp \
-     && ln -sf /usr/bin/gcov-12 /usr/bin/gcov \
-     && ln -sf /usr/bin/gcov-dump-12 /usr/bin/gcov-dump \
-     && ln -sf /usr/bin/gcov-tool-12 /usr/bin/gcov-tool \
+     && ln -sf /usr/bin/gcc-14 /usr/bin/gcc \
+     && ln -sf /usr/bin/gcc-ar-14 /usr/bin/gcc-ar \
+     && ln -sf /usr/bin/gcc-nm-14 /usr/bin/gcc-nm \
+     && ln -sf /usr/bin/gcc-ranlib-14 /usr/bin/gcc-ranlib \
+     && ln -sf /usr/bin/g++-14 /usr/bin/g++ \
+     && ln -sf /usr/bin/gfortran-14 /usr/bin/gfortran \
+     && ln -sf /usr/bin/cpp-14 /usr/bin/cpp \
+     && ln -sf /usr/bin/gcov-14 /usr/bin/gcov \
+     && ln -sf /usr/bin/gcov-dump-14 /usr/bin/gcov-dump \
+     && ln -sf /usr/bin/gcov-tool-14 /usr/bin/gcov-tool \
      && apt-get update -y \
      && apt-get upgrade -y
 

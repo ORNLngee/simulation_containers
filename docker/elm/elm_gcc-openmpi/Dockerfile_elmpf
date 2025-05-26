@@ -3,12 +3,12 @@
 # Ubuntu OS embeded scipy-notebook docker container for building ELM-PFLOTRAN/
 # compilers: gcc/openmpi
 # python package manager: conda/(micro)mamba
-# docker image: docker.io/yuanfornl/elmpf_docker2025:scipy-nb_20250106
+# docker image: docker.io/yuanfornl/elmpf_docker2025:latest
 #
 # -------------------------------------------------------------------------------------------
 #
 
-FROM yuanfornl/elmpf_baseos:scipy-nb_20250106
+FROM yuanfornl/elmpf_baseos:latest
 
 LABEL maintainer.name="Fengming Yuan" \
       maintainer.email="yuanf@ornl.gov" \
