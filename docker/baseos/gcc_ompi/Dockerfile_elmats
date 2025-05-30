@@ -147,6 +147,13 @@ RUN cd /home/$NB_USER \
     && mamba install anaconda::_libgcc_mutex
 # (note: 'meshpy' and '_libgcc_mutex' not available on conda-forge by default    
 
+# update to python-3.12.8 to be consistent with scipy-notebook image
+RUN cd /home/$NB_USER \
+    && eval "$(mamba shell hook --shell bash)" \
+    && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
+    && mamba activate --stack watershed-workflow-master \
+    && mamba update -y python=3.12.8
+
 #    (3) install watershed-workflow package
 RUN cd /home/$NB_USER \
     && eval "$(mamba shell hook --shell bash)" \
