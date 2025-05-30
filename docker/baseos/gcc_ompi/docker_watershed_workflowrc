@@ -19,3 +19,7 @@
 #
 # ssl_cert : True
 
+# downloading modis via NASA app 'appEARS' requires username and password
+# you have to change following before use it
+# username : xxxxxxxxx
+# password : Xx???????$$$$
