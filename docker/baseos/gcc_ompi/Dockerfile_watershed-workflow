@@ -173,12 +173,7 @@ RUN cd /home/$NB_USER \
     && echo "export WATERSHED_WORKFLOW_DIR=/home/$NB_USER/work">>/home/$NB_USER/.bashrc
 
 #    (4) get Amanzi-ATS source and install amanzi_xml, ats-input-spec, ats-tools, etc.
-# user home installation
-#ARG AMANZI_TOOLS=/home/$NB_USER/tools/amanzi_ats_tools
-# system-wide installation by USER root
-ARG AMANZI_TOOLS=/usr/local/amanzi-root/tools
-USER root
-
+ARG AMANZI_TOOLS=/home/$NB_USER/tools/amanzi_ats_tools
 RUN cd /home/$NB_USER \
     && eval "$(mamba shell hook --shell bash)" \
     && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
@@ -229,97 +224,12 @@ RUN cd /home/$NB_USER/tools \
 	&& rm -rf seacas \
     && echo "export PYTHONPATH=${AMANZI_TOOLS}/seacas_exodus/lib:\$PYTHONPATH">>/home/$NB_USER/.bashrc \
     && echo "">>/home/$NB_USER/.bashrc
-
-# 2 bash scripts to build amanizi-tpls and amanzi/ats based on already-built tpls
-RUN cd /home/$NB_USER/tools \
-    && wget --no-check-certificate https://github.com/ORNLngee/simulation_containers/raw/master/docker/baseos/gcc_ompi/build_Amanzi_tpls.sh \
-    && wget --no-check-certificate https://github.com/ORNLngee/simulation_containers/raw/master/docker/baseos/gcc_ompi/build_Amanzi-ats_notpls.sh
-
     
-#-------------------------------------------------------------------------------------------------------    
-## TPLs
-# needs parallel versions of HDF5/netcdf4/petsc, which not available from debian (except for hdf5?)
-
-USER root
-    
-## Amanzi-TPLs only installation
-ARG ATS_BASE=/home/$NB_USER/ATS_ROOT
-ARG TPLS_VER=0.98.11
-ARG TPLS_BUILD_TYPE=opt
-ARG AMANZI_TPLS_DIR=/usr/local/amanzi-root/tpls-${TPLS_VER}-${TPLS_BUILD_TYPE}
-ARG AMANZI_DIR=${ATS_BASE}/install/amanzi-ats/master-opt_tpls-${TPLS_VER}-${TPLS_BUILD_TYPE}
-
-ARG AMANZI_SRC_DIR=/home/$NB_USER/models/amanzi
-ARG ATS_SRC_DIR=$AMANZI_SRC_DIR/src/physics/ats
-
-RUN cd /home/$NB_USER \
-    && eval "$(mamba shell hook --shell bash)" \
-    && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
-    && mamba activate watershed-workflow-master \
-    && mkdir -p models \
-    && cd ./models \
-    && wget --no-check-certificate https://github.com/ORNLngee/simulation_containers/raw/master/docker/baseos/gcc_ompi/build_Amanzi_tpls.sh \
-    && git clone -b master --depth 1 --single-branch https://github.com/amanzi/amanzi.git \
-    && cd ${AMANZI_SRC_DIR} \
-    && git submodule init \
-    && git submodule update -f --recursive \
-    && cd ${ATS_SRC_DIR} \
-    && git submodule init \
-    && git submodule update -f --recursive \
-    && cd ${AMANZI_SRC_DIR} \
-    && mkdir -p ${AMANZI_TPLS_DIR} \
-    && bash ../build_Amanzi_tpls.sh $ATS_BASE $TPLS_VER $AMANZI_TPLS_DIR $AMANZI_DIR \
-    && cd /home/$NB_USER/models \
-    && rm -rf ${ATS_SRC_DIR} \
-    && rm -rf ${AMANZI_SRC_DIR}
-
-# TPLS built hdf5 fortran libs, 
-# but not included in PETSc libs settings even though options added following instructions
-RUN cd ${AMANZI_TPLS_DIR} \
-    && perl -pi -e 's/-lhdf5_hl -lhdf5/-lhdf5_hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5/g' \
-      ./petsc-3.20/lib/petsc/conf/petscvariables
-
-RUN cd /home/$NB_USER \
-    && echo "">>/home/$NB_USER/.bashrc \
-    && echo "#-------- ATS envs ----------">>/home/$NB_USER/.bashrc \
-    && echo "export ATS_BASE=$ATS_BASE">>/home/$NB_USER/.bashrc \
-    && echo "export AMANZI_TPLS_DIR=$AMANZI_TPLS_DIR">>/home/$NB_USER/.bashrc \
-    && echo "export AMANZI_DIR=$AMANZI_TPLS_DIR">>/home/$NB_USER/.bashrc \
-    && echo "">>/home/$NB_USER/.bashrc \
-    && echo "export PATH=${AMANZI_TPLS_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
-    && echo "export LD_LIBRARY_PATH=${AMANZI_TPLS_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
-    && echo "export PATH=${AMANZI_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
-    && echo "export LD_LIBRARY_PATH=${AMANZI_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
-    && echo "#-------- ATS envs ----------">>/home/$NB_USER/.bashrc \
-    && echo "">>/home/$NB_USER/.bashrc
-    
-# copying a script for building Amanzi-ats using already built-in TPLs
-RUN cd /home/$NB_USER/models \
-    && wget --no-check-certificate https://github.com/ORNLngee/simulation_containers/raw/master/docker/baseos/gcc_ompi/build_Amanzi-ats_notpls.sh \
-    && cd /home/$NB_USER
-
-## make a couple of softlinks for elm-pflotran's machine settings ('docker'), i.e. libs of 'netcdf4', 'hdf5', and/or 'petsc'
-RUN cd /usr/local \
-    && mkdir -p tpls \
-    && cd /usr/local/tpls \
-    && ln -sf ${AMANZI_TPLS_DIR} netcdf-hdf5 \
-    && cd /usr/local/tpls \
-    && ln -sf ${AMANZI_TPLS_DIR}/petsc-3.20 petsc \
-    && cd /home/$NB_USER \
-    && echo "">>/home/$NB_USER/.bashrc \
-    && echo "#-------- ELM/PFLOTRAN envs ----------">>/home/$NB_USER/.bashrc \
-    && echo "export HDF5_HOME=/usr/local/tpls/netcdf-hdf5">>/home/$NB_USER/.bashrc \
-    && echo "export NETCDF_PATH=/usr/local/tpls/netcdf-hdf5">>/home/$NB_USER/.bashrc \
-    && echo "export NETCDF_C_PATH=/usr/local/tpls/netcdf-hdf5">>/home/$NB_USER/.bashrc \
-    && echo "export NETCDF_FORTRAN_PATH=/usr/local/tpls/netcdf-hdf5">>/home/$NB_USER/.bashrc \
-    && echo "export PETSC_DIR=/usr/local/tpls/petsc">>/home/$NB_USER/.bashrc \
-    && echo "#-------- ELM/PFLOTRAN envs ----------">>/home/$NB_USER/.bashrc \
-    && echo "">>/home/$NB_USER/.bashrc
-    
-
 #-------------------------------------------------------------------------------------------------------    
    
-## need to change container user from 'root' back to 'jovyan' and ownership of /home/jovyan and /opt/conda. NOTE this is the default user of $NB_USER
+## need to change container user from 'root' back to 'jovyan' and ownership of /home/jovyan and /opt/conda. 
+#  NOTE this is the default user of $NB_USER
+USER root
 RUN cd / \
     && chown $NB_USER -R /opt/conda
 

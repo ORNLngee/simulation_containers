@@ -101,4 +101,13 @@ rm -rf ${AMANZI_TPLS_BUILD_DIR}
 rm -rf ${AMANZI_BUILD_DIR}
 rm -rf ${ATS_BASE}/Downloads
 
+echo "export AMANZI_SRC_DIR=${AMANZI_SRC_DIR}">>$HOME/.bashrc
+echo "export AMANZI_DIR=${AMANZI_DIR}">>$HOME/.bashrc
+echo "export AMANZI_TPLS_DIR=${AMANZI_TPLS_DIR}">>$HOME/.bashrc
+
+echo "export PATH=${AMANZI_TPLS_DIR}/bin:\$PATH">>$HOME/.bashrc
+echo "export LD_LIBRARY_PATH=${AMANZI_TPLS_DIR}/lib:\$LD_LIBRARY_PATH">>$HOME/.bashrc
+echo "export PATH=${AMANZI_DIR}/bin:\$PATH">>$HOME/.bashrc
+echo "export LD_LIBRARY_PATH=${AMANZI_DIR}/lib:\$LD_LIBRARY_PATH">>$HOME/.bashrc
+
 

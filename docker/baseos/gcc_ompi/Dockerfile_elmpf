@@ -27,6 +27,8 @@ RUN apt-get update -y \
     && apt-get install -y \
     apt-transport-https \
     apt-utils \
+    autotools-dev \
+    automake \
     build-essential \
     cmake \
     gsl-bin \
