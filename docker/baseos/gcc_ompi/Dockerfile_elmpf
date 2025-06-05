@@ -92,6 +92,9 @@ ENV LANGUAGE=en_US.UTF-8
 ## check locales
 RUN locale -a
 
+## max. number of processors for parallel jobs (not use all on the machine)
+ENV MAX_NPROC=`nproc --ignore=1`
+RUN echo "export MAX_NPROC=`nproc --ignore=1`">>.bashrc
 
 ## append PATH, LD_LIBRARY_PATH to /home/$NB_USER/.bashrc
 RUN echo "export PATH=$PATH ">>/home/$NB_USER/.bashrc \
