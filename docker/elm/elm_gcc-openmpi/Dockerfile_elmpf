@@ -54,6 +54,12 @@ RUN cd /home/$USER/.cime \
     && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/gnu_docker.cmake \
     && cd /home/$USER
 
+## max. number of processors for parallel jobs (not use all on the machine)
+RUN cd /home/$USER \
+    && export mystr='`nproc --ignore=1`' \
+    && echo "export MAX_NPROC=$mystr">>/home/$USER/.bashrc \
+    && echo "">>/home/$USER/.bashrc
+
 ## for some unknown reason, docker may be trying to git connect to somewhere, which cause error and exit building.
 #   message like: fatal: unable to auto-detect email address (got 'jovyan@buildkitsandbox.(none)')'
 RUN export USER=${NB_USER} \
@@ -74,7 +80,9 @@ RUN cd /home/$USER/models \
 
 ## ------------------------------------------------------------------------------
 ## Build example case as a test  --- only used with initial Docker build testing
+
 RUN cd /home/$USER/models/E3SM \
+    && export MAX_NPROC=`nproc --ignore=1` \
     && export CASE_NAME=/home/$USER/output/f19_g16.IGSWELMBGC \
     && cd ./cime/scripts \
     && ./create_newcase --case ${CASE_NAME} --res f19_g16 --compset IGSWELMBGC --mach docker --compiler gnu \

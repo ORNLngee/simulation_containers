@@ -98,6 +98,12 @@ RUN echo "export PATH=$PATH ">>/home/$NB_USER/.bashrc \
     && echo "export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/opt/conda/lib">>/home/$NB_USER/.bashrc \
     && echo "">>/home/$NB_USER/.bashrc
 
+## max. number of processors for parallel jobs (not use all on the machine)
+RUN cd /home/$NB_USER \
+    && export mystr='`nproc --ignore=1`' \
+    && echo "export MAX_NPROC=$mystr">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
 # apt-get installs almost libs under /usr/lib/aarch64-linux-gnu for arm64,
 # while under /usr/lib/x86_64-linux-gnu for amd64.
 RUN export UNKNOWNLIBPATH=$(ls -d /usr/lib/*-linux-gnu) \
