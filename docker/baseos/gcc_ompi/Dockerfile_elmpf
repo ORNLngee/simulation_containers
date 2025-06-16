@@ -44,7 +44,6 @@ RUN apt-get update -y \
     libudunits2-dev \
     locales \
     m4 \
-    nco \
     rsync \
     udunits-bin \
     vim \
@@ -78,10 +77,6 @@ RUN cd / \
      && apt-get update -y \
      && apt-get upgrade -y
 
-## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
-#   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
-RUN ln -sf /usr/bin/ncap2 /usr/bin/ncap
-
 ## Install program to configure locales
 RUN echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen \
     && locale-gen
@@ -111,9 +106,14 @@ RUN export UNKNOWNLIBPATH=$(ls -d /usr/lib/*-linux-gnu) \
     && echo "">>/home/$NB_USER/.bashrc
  
 ## additional python packages
-#    (1) installed by mamba/conda
+#    (1) installed by mamba/conda. Tried install nco via apt-get which has issue of libs of bzip
 RUN cd /home/$NB_USER \
-    && mamba install configparser
+    && mamba install -y configparser \
+    && mamba install --freeze-installed -y nco
+
+## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
+#   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
+RUN ln -sf /opt/conda/bin/ncap2 /opt/conda/bin/ncap
 
 ## OPENMPI installation 
 #  (NOTE: apt-get installed openmpi-bin & libopenmpi has issues of PATH when conda installing mpi4py)

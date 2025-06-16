@@ -178,10 +178,10 @@ RUN echo "*** ALQUIMIA-PFLOTRAN chem libs build completed successfully ***"
 ## ------------------------------------------------------------------------------
 ## copy a few tool packages for running ELM and post-processing outputs
 # the following is to download from URL
-ADD $CONTAINERS_REPO_URL/raw/master/docker/elm/elm_and_postprocessing /home/$NB_USER/tools/elm_and_postprocessing
+# ADD $CONTAINERS_REPO_URL/raw/master/docker/elm/elm_and_postprocessing /home/$NB_USER/tools/elm_and_postprocessing
 
 # the following implies having to run docker build with './elm_and_postprocessing' inside current host directory
-#COPY ./elm_and_postprocessing /home/$NB_USER/tools/elm_and_postprocessing
+COPY ./elm_and_postprocessing /home/$NB_USER/tools/elm_and_postprocessing
 
 USER root
 RUN cd /home/$NB_USER \

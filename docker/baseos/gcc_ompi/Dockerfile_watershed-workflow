@@ -3,7 +3,7 @@
 # Ubuntu OS embeded scipy-notebook docker container for building ELM-ATS-PFLOTRAN/
 # compilers: gcc/openmpi
 # python package manager: conda/mamba
-# docker image: docker.io/yuanfornl/elmats_baseos
+# docker image: docker.io/yuanfornl/elmats_baseos:ww-master
 #
 # -------------------------------------------------------------------------------------------
 #
@@ -46,7 +46,6 @@ RUN apt-get update -y \
     libudunits2-dev \
     locales \
     m4 \
-    nco \
     rsync \
     udunits-bin \
     vim \
@@ -60,10 +59,6 @@ RUN apt-get update -y \
     && apt-get install gdb -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean all
-
-## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
-#   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
-RUN ln -sf /usr/bin/ncap2 /usr/bin/ncap
 
 ## Install program to configure locales
 RUN echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen \
@@ -116,39 +111,25 @@ RUN cd /home/$NB_USER \
     && echo "">>/home/$NB_USER/.bashrc
 ENV PATH=${MPI_DIR}/bin:$PATH
 
-## additional python packages, including mpi4py which depending upon MPI
-# note: better to be $NB_USER, otherwise $NB_USER may have permission issue over /opt/conda
-USER $NB_USER
-## additional python packages
-#    (1) installed by mamba/conda
-#RUN cd /home/$NB_USER \
-#    && mamba install configparser
-#
-#    (2) installed by pip. 
-#        NOTE: it appears that mamba/conda installing h5py,netCDF4,mpi4py (possibly needed by OLMT) may mess up later-on mpi-built libs
-#RUN cd /home/$NB_USER \
-#    && pip3 install h5py netCDF4 mpi4py
-
-
-
 ## python packages, branch of 'fmyuan/master-for-scipyNB' from Watershed Waterflow, managed by mamba
 #  (note: branch 'fmyuan/master-for-scipyNB' is branched master with minimal modification
 #    (1) package env 'watershed-workflow-master' under /home/jovyan/.local/share/jupyter
 ENV MAMBA_ROOT_PREFIX=/home/$NB_USER/.local/share/jupyter
+ARG CONDA_ENV=watershed-workflow-master
 RUN cd /home/$NB_USER \
     && eval "$(mamba shell hook --shell bash)" \
     && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
-    && mamba create -n watershed-workflow-master --root-prefix=$MAMBA_ROOT_PREFIX \
+    && mamba create -n $CONDA_ENV --root-prefix=$MAMBA_ROOT_PREFIX \
     && echo "">>/home/$NB_USER/.bashrc \
-    && echo "#------- activate 'watershed-workflow-master' ------- ">>/home/$NB_USER/.bashrc \
-    && echo "mamba activate watershed-workflow-master">>/home/$NB_USER/.bashrc \
+    && echo "#------- activate $CONDA_ENV ------- ">>/home/$NB_USER/.bashrc \
+    && echo "mamba activate $CONDA_ENV">>/home/$NB_USER/.bashrc \
     && echo "">>/home/$NB_USER/.bashrc
     
 #    (2) install python packages for watershed-workflow
 RUN cd /home/$NB_USER \
     && eval "$(mamba shell hook --shell bash)" \
     && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
-    && mamba activate watershed-workflow-master \
+    && mamba activate $CONDA_ENV \
     && mkdir -p /home/$NB_USER/tools \
     && cd /home/$NB_USER/tools \
     && git clone https://github.com/fmyuan/watershed-workflow.git \
@@ -156,13 +137,23 @@ RUN cd /home/$NB_USER \
     && git switch fmyuan/master-for-scipyNB \
     && mamba install -y python=3.10.13 \
     && mamba install -y ipykernel==6.29.3 \
-    && python -m ipykernel install --user --name=ww_master_kernel --display-name="watershed-workflow-master" \
+    && python -m ipykernel install --user --name=ww_master_kernel --display-name="$CONDA_ENV" \
  ##    && mamba install --freeze-installed -y -f ./environments/packages_base.txt \
     && mamba install -y -f ./environments/environment-DEV-docker.yml \
     && pip3 install meshpy==2022.1.3 \
     && mamba install anaconda::_libgcc_mutex \
     && mamba update certifi
 # (note: 'meshpy' and '_libgcc_mutex' not available on conda-forge by default    
+
+## NCO and its python packages, installed by mamba/conda. NOTE: must be with option '--freeze-installed'
+#  Tried install nco via apt-get which has issue of libs of bzip
+RUN cd /home/$NB_USER \
+    && mamba install --freeze-installed -y nco
+## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
+#   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
+RUN ln -sf $MAMBA_ROOT_PREFIX/envs/$CONDA_ENV/bin/ncap2 \
+           $MAMBA_ROOT_PREFIX/envs/$CONDA_ENV/bin/ncap
+
 
 #    (3) install watershed-workflow package. Note the first few lines are needed to guaranttee installation is under ww-env of python packages
 RUN cd /home/$NB_USER \
@@ -183,7 +174,7 @@ ARG AMANZI_TOOLS=/home/$NB_USER/tools/amanzi_ats_tools
 RUN cd /home/$NB_USER \
     && eval "$(mamba shell hook --shell bash)" \
     && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
-    && mamba activate watershed-workflow-master \
+    && mamba activate $CONDA_ENV \
     && mkdir -p ${AMANZI_TOOLS} \
     && mkdir -p ${AMANZI_TOOLS}/ats \
     && cd /home/$NB_USER/tools \
@@ -217,7 +208,7 @@ RUN cd /home/$NB_USER \
 RUN cd /home/$NB_USER/tools \
     && eval "$(mamba shell hook --shell bash)" \
     && mamba shell init --shell bash --root-prefix=$MAMBA_ROOT_PREFIX \
-    && mamba activate watershed-workflow-master \
+    && mamba activate $CONDA_ENV \
 	&& git clone https://github.com/sandialabs/seacas \
 	&& mkdir -p ${AMANZI_TOOLS}/seacas_exodus \
 	&& cd seacas \
