@@ -9,6 +9,7 @@
 #
 
 FROM yuanfornl/elmpf_baseos:latest
+#FROM yuanfornl/elmpf_baseos:scipy-nb_20250106
 
 LABEL maintainer.name="Fengming Yuan" \
       maintainer.email="yuanf@ornl.gov" \
