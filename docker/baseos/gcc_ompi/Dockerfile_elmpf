@@ -105,11 +105,17 @@ RUN export UNKNOWNLIBPATH=$(ls -d /usr/lib/*-linux-gnu) \
     && echo "export LD_LIBRARY_PATH=$UNKNOWNLIBPATH:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
     && echo "">>/home/$NB_USER/.bashrc
  
-## additional python packages
-#    (1) installed by mamba/conda. Tried install nco via apt-get which has issue of libs of bzip
+## additional python packages, usefull for ELM running and postprocessing.
+#    (1) installed by mamba/conda. 
+#       (note: Tried install nco via apt-get which has issue of libs of bzip)
 RUN cd /home/$NB_USER \
     && mamba install -y configparser \
-    && mamba install --freeze-installed -y nco
+    && mamba install --freeze-installed -y nco \
+    && mamba install -y xarray \
+    && mamba install -y nc-time-axis \
+    && mamba install -y geopandas \
+    && mamba install -y pandas \
+    && mamba install -y geemap
 
 ## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
 #   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
@@ -257,9 +263,13 @@ RUN cd /home/$NB_USER \
 RUN cd /home/$NB_USER \
     && echo "export PETSC_DIR=${PETSC_DIR}">>/home/$NB_USER/.bashrc
         
-## need to change container user from 'root' back to 'jovyan' and ownership of /home/jovyan. NOTE this is the default user of $NB_USER
+## need to change container user from 'root' back to 'jovyan' and ownership of /home/jovyan and /opt/conda. NOTE this is the default user of $NB_USER
+RUN cd / \
+    && chown $NB_USER -R /opt/conda
+    
 RUN cd / \
     && chown $NB_USER -R /home/$NB_USER
+    
 USER $NB_USER
 
     
