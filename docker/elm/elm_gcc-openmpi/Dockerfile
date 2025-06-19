@@ -129,22 +129,32 @@ RUN cd /tools \
 ## Copy a few scripts into /scripts to make availible to users
 #    (1) downloading pt-e3sm-inputdata
 RUN cd /scripts \
-    && wget $TOOLS_REPOSITORY_URL/raw/master/met_scripts/download_elm_singlesite_forcing_data.sh \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/download_elm_singlesite_forcing_data.sh \
     && chown $USER:dockerusers download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh
 
 #    (2) an example OLMT script to setup/configure/build/run docker ELM
 RUN cd /scripts \
-    && wget $TOOLS_REPOSITORY_URL/raw/master/olmt_scripts/example_site_fullrun_userdata_docker.sh \
-    && mv example_site_fullrun_userdata_docker.sh OLMT_docker_example.sh \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/test_docker_OLMT_example.sh \
+    && mv test_docker_OLMT_example.sh OLMT_docker_example.sh \
     && chown $USER:dockerusers OLMT_docker_example.sh \
     && chmod +x OLMT_docker_example.sh
 
 #    (3) testing docker ELM by 42 fluxnet sites data
 RUN cd /scripts \
-    && wget $TOOLS_REPOSITORY_URL/raw/master/elm_scripts/test_docker_42fluxnetsites_example.sh \
+    && wget $REPOSITORY_URL/raw/master/docker/elm/test_docker_42fluxnetsites_example.sh \
     && chown $USER:dockerusers test_docker_42fluxnetsites_example.sh \
     && chmod +x test_docker_42fluxnetsites_example.sh \
+    && cd /
+    
+#    (4) scripts for 2025 Ameriflux ModEx Workshop, organized by Bailey Murphy and Theresia Yazbeck.     
+RUN cd /scripts \
+    && cp /tools/OLMT/examples/2025_Workshop/full_run.sh . \
+    && cp /tools/OLMT/examples/2025_Workshop/restart_trans_run.sh . \
+    && chown $USER:dockerusers full_run.sh \
+    && chmod +x full_run.sh \
+    && chown $USER:dockerusers restart_trans_run.sh \
+    && chmod +x restart_trans_run.sh \
     && cd /
 
 USER ${USER}
