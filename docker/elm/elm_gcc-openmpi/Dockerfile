@@ -129,20 +129,20 @@ RUN cd /tools \
 ## Copy a few scripts into /scripts to make availible to users
 #    (1) downloading pt-e3sm-inputdata
 RUN cd /scripts \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/download_elm_singlesite_forcing_data.sh \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/download_elm_singlesite_forcing_data.sh \
     && chown $USER:dockerusers download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh
 
 #    (2) an example OLMT script to setup/configure/build/run docker ELM
 RUN cd /scripts \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/test_docker_OLMT_example.sh \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/test_docker_OLMT_example.sh \
     && mv test_docker_OLMT_example.sh OLMT_docker_example.sh \
     && chown $USER:dockerusers OLMT_docker_example.sh \
     && chmod +x OLMT_docker_example.sh
 
 #    (3) testing docker ELM by 42 fluxnet sites data
 RUN cd /scripts \
-    && wget $REPOSITORY_URL/raw/master/docker/elm/test_docker_42fluxnetsites_example.sh \
+    && wget $REPOSITORY_URL/raw/maint-v1/docker/elm/test_docker_42fluxnetsites_example.sh \
     && chown $USER:dockerusers test_docker_42fluxnetsites_example.sh \
     && chmod +x test_docker_42fluxnetsites_example.sh \
     && cd /
