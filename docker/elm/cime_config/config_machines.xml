@@ -10,7 +10,7 @@
       <COMPILERS>gnu,nvidia,nvidiagpu</COMPILERS>
       <MPILIBS>openmpi,mpi-serial</MPILIBS>
       <PROJECT>docker_runs</PROJECT>
-      <CIME_OUTPUT_ROOT>/home/$USER/output</CIME_OUTPUT_ROOT>
+      <CIME_OUTPUT_ROOT>/home/$USER/output/cime_run_dirs</CIME_OUTPUT_ROOT>
       <DIN_LOC_ROOT>/home/$USER/inputdata</DIN_LOC_ROOT>
       <DIN_LOC_ROOT_CLMFORC>/home/$USER/inputdata/atm/datm7</DIN_LOC_ROOT_CLMFORC>
       <DOUT_S_ROOT>$CIME_OUTPUT_ROOT/archive/$CASE</DOUT_S_ROOT>

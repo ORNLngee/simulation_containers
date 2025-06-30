@@ -44,6 +44,12 @@ rm -f master.zip
 # go in and extract remaining tar files
 cd ${cesm_data_dir}
 sh ./unpack.sh
+# some additional datasets when E3SM updating progressively, if needed
+#cd ./atm/cam/chem/trop_mozart_aero/aero
+#wget --no-check-certificate https://web.lcrc.anl.gov/public/e3sm/inputdata/atm/cam/chem/trop_mozart_aero/aero/aerosoldep_rcp4.5_monthly_1849-2104_1.9x2.5_c100402.nc
+#cd ${cesm_data_dir}
+ 
+
 # =======================================================================================
 
 # =======================================================================================

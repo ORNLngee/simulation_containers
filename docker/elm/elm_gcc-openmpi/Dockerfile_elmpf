@@ -33,8 +33,8 @@ RUN cd /home/$USER \
     && mkdir -p output \
     && mkdir -p output/baselines \
     && mkdir -p output/archive \
-    && mkdir -p output/cases \
-    && mkdir -p output/scratchs \
+    && mkdir -p output/cime_case_dirs \
+    && mkdir -p output/cime_run_dirs \
     && mkdir -p tools \
     && mkdir -p tools/scripts \
     && mkdir -p tools/cprnc \
@@ -152,6 +152,13 @@ RUN cd /home/$USER/tools/scripts \
     && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/test_docker_42fluxnetsites_example.sh \
     && chown $USER test_docker_42fluxnetsites_example.sh \
     && chmod +x test_docker_42fluxnetsites_example.sh \
+    && cd /home/$USER
+
+#    (4) an example bash script for fully running docker ELM by 42 fluxnet sites data
+RUN cd /home/$USER/tools/scripts \
+    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/test_docker_42fluxnetsites_3stages.sh \
+    && chown $USER test_docker_42fluxnetsites_3stages.sh \
+    && chmod +x test_docker_42fluxnetsites_3stages.sh \
     && cd /home/$USER
 
 ## ------------------------------------------------------------------------------
