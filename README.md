@@ -12,9 +12,15 @@ NOTE: 1) this forked repository is for purpose of improvements in applications r
 <br>
 This branch now is a new version, totally based on quay.io/scipy-notebook images as the baseOS. For purposes of ELM model + two high-resoultion models, we provide:
 
-### *ELM-PFLOTRAN models*
+#### *ELM-PFLOTRAN models*
+[yuanfornl/elmpf_docker2025:latest](https://hub.docker.com/repository/docker/yuanfornl/elmpf_docker2025/tags)
 
-### *ELM-ATS models*
+```
+docker pull yuanfornl/elmpf_docker2025:latest
+```
+
+
+#### *ELM-ATS models*
 
 <br>
 
@@ -24,7 +30,11 @@ This branch is for maintaining the original version of NGEE Arctic ModEx Worksho
 There are yearly maintained images:
 
 ### *v2025* 
-yuanfornl/elm_docker2025:latest
+[yuanfornl/elm_docker2025:latest](https://hub.docker.com/repository/docker/yuanfornl/elm_docker2025/tags/latest/sha256:da9f79d26cbdfaf9d76ad160332f74a713a190b386a1e6784afd8444a520e609)
+
+```
+docker pull yuanfornl/elm_docker2025:latest
+```
 
 ### *v2021* 
 Note: this is copy of the original, which may be still used by someone but requiring maintenance with time (due to hardware/software reasons).
