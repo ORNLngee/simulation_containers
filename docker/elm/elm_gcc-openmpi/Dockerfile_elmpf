@@ -3,12 +3,15 @@
 # Ubuntu OS embeded scipy-notebook docker container for building ELM-PFLOTRAN/
 # compilers: gcc/openmpi
 # python package manager: conda/(micro)mamba
-# docker image: docker.io/yuanfornl/elmpf_docker2025:latest
+# docker image: docker.io/yuanfornl/elmpf_docker2025:scipy-nb_20250106
 #
 # -------------------------------------------------------------------------------------------
 #
+# elm_baseos:tag args, which can be user-provided by '--build-arg ELMBASEOS_TAG=...'
+ARG ELMBASEOS_TAG=elmpf_baseos:scipy-nb_20250106
 
-FROM yuanfornl/elmpf_baseos:latest
+FROM docker.io/yuanfornl/${ELMBASEOS_TAG}
+#FROM yuanfornl/elmpf_baseos:latest
 #FROM yuanfornl/elmpf_baseos:scipy-nb_20250106
 
 LABEL maintainer.name="Fengming Yuan" \
@@ -17,7 +20,7 @@ LABEL maintainer.name="Fengming Yuan" \
       author.email="yuanf@ornl.gov, bsulman@ornl.gov" \
       description="ELM/PFLOTRAN" \
       version.elm="elm" \
-      version.baseos="gcc/openmpi-4.1.x/python-3.12x"
+      version.baseos="gcc-13/openmpi-4.1.x/python-3.12x"
     
 ## where to get the ELM/PFLOTRAN, tools and containers source code
 ENV E3SM_REPO_URL=https://github.com/ORNLngee/E3SM_ORNL_IM.git

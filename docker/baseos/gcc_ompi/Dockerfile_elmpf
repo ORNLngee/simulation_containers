@@ -1,18 +1,22 @@
 # -------------------------------------------------------------------------------------------
 #
-# Ubuntu OS embeded scipy-notebook docker container for building ELM-PFLOTRAN/
+# Ubuntu OS embeded scipy-notebook docker container for building ELM-PFLOTRAN
 # compilers: gcc/openmpi
-# python package manager: conda/(micro)mamba
+# python package manager: conda/mamba
 # docker image: docker.io/yuanfornl/elmpf_baseos
 #
 # -------------------------------------------------------------------------------------------
 #
 
-## scipy-notebook from quay.io, which based on ubuntu linux OS. Current: ubuntu-24.04, gcc-13.3 (will be upgraded to gcc-14)
+## scipy-notebook from quay.io, which based on ubuntu linux OS. Current (2025-01-06): ubuntu-24.04, gcc-13.3
+# FROM quay.io/jupyter/scipy-notebook:2025-01-06
 #    note: (1) conda packages are installed /opt/conda
 #          (2) python version: 3.12.8
 #          (3) default user is: jovyan (i.e. /home/jovyan)
-FROM quay.io/jupyter/scipy-notebook:2025-01-06
+#         +(4) openmpi-4.1.x or openmpi-5.0.x and other linux tools/utilities for ELM/PFLOTRAN/OLMT, etc.
+
+ARG BASEOS_TAG=gcc13_ompi418
+FROM docker.io/yuanfornl/baseos_scipynb:${BASEOS_TAG}
 
 LABEL maintainer.name="F.-M. Yuan" \
       maintainer.email="yuanf@ornl.gov" \
@@ -20,138 +24,17 @@ LABEL maintainer.name="F.-M. Yuan" \
       author.email="yuanf@ornl.gov" \
       description="Ubuntu OS embeded scipy-notebook based images (gcc,python3, etc) + openmpi, loaded with necessary dependencies for building ELM-PFLOTRAN images"
 
-## Update the OS system and essential dependencies, not included in scipy-notebook container 
-# (note: USER root is a must for apt-get to work)
 USER root
-RUN apt-get update -y \
-    && apt-get install -y \
-    apt-transport-https \
-    apt-utils \
-    autotools-dev \
-    automake \
-    build-essential \
-    cmake \
-    gsl-bin \
-    libblas-dev \
-    libcurl4-openssl-dev \
-    libffi-dev \
-    libgsl-dev \
-    liblapack-dev \
-    libxml2 \
-    libxml2-dev \
-    libxml-libxml-perl \
-    libxml2-utils \
-    libudunits2-dev \
-    locales \
-    m4 \
-    rsync \
-    udunits-bin \
-    vim \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean all
-
-# remove gcc-13 and install gcc/gfortran-14.
-RUN apt-get remove gcc gcc-13 -y \
-    && apt-get autoremove -y
-    
-RUN apt-get update -y \
-    && apt-get install gcc-14 -y \
-    && apt-get install g++-14 -y \
-    && apt-get install gfortran-14 -y \
-    && apt-get install gdb -y \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean all
-
-RUN cd / \
-     && ln -sf /usr/bin/gcc-14 /usr/bin/gcc \
-     && ln -sf /usr/bin/gcc-ar-14 /usr/bin/gcc-ar \
-     && ln -sf /usr/bin/gcc-nm-14 /usr/bin/gcc-nm \
-     && ln -sf /usr/bin/gcc-ranlib-14 /usr/bin/gcc-ranlib \
-     && ln -sf /usr/bin/g++-14 /usr/bin/g++ \
-     && ln -sf /usr/bin/gfortran-14 /usr/bin/gfortran \
-     && ln -sf /usr/bin/cpp-14 /usr/bin/cpp \
-     && ln -sf /usr/bin/gcov-14 /usr/bin/gcov \
-     && ln -sf /usr/bin/gcov-dump-14 /usr/bin/gcov-dump \
-     && ln -sf /usr/bin/gcov-tool-14 /usr/bin/gcov-tool \
-     && apt-get update -y \
-     && apt-get upgrade -y
-
-## Install program to configure locales
-RUN echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen \
-    && locale-gen
-## Set default locale for the environment
-ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US.UTF-8
-
-## check locales
-RUN locale -a
-
-
-## append PATH, LD_LIBRARY_PATH to /home/$NB_USER/.bashrc
-RUN echo "export PATH=$PATH ">>/home/$NB_USER/.bashrc \
-    && echo "export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/opt/conda/lib">>/home/$NB_USER/.bashrc \
-    && echo "">>/home/$NB_USER/.bashrc
-
-## max. number of processors for parallel jobs (not use all on the machine)
-RUN cd /home/$NB_USER \
-    && export mystr='`nproc --ignore=1`' \
-    && echo "export MAX_NPROC=$mystr">>/home/$NB_USER/.bashrc \
-    && echo "">>/home/$NB_USER/.bashrc
-
-# apt-get installs almost libs under /usr/lib/aarch64-linux-gnu for arm64,
-# while under /usr/lib/x86_64-linux-gnu for amd64.
-RUN export UNKNOWNLIBPATH=$(ls -d /usr/lib/*-linux-gnu) \
-    && echo "export LD_LIBRARY_PATH=$UNKNOWNLIBPATH:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
-    && echo "">>/home/$NB_USER/.bashrc
- 
-## additional python packages, usefull for ELM running and postprocessing.
-#    (1) installed by mamba/conda. 
-#       (note: Tried install nco via apt-get which has issue of libs of bzip)
-RUN cd /home/$NB_USER \
-    && mamba install -y configparser \
-    && mamba install --freeze-installed -y nco \
-    && mamba install -y xarray \
-    && mamba install -y nc-time-axis \
-    && mamba install -y geopandas \
-    && mamba install -y pandas \
-    && mamba install -y geemap
-
-## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
-#   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
-RUN ln -sf /opt/conda/bin/ncap2 /opt/conda/bin/ncap
-
-## OPENMPI installation 
-#  (NOTE: apt-get installed openmpi-bin & libopenmpi has issues of PATH when conda installing mpi4py)
-
-ARG OPENMPI_VERSION=4.1.8
-ENV MPI_DIR=/usr/local/openmpi
-RUN cd /home/$NB_USER \
-    && wget --no-check-certificate https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OPENMPI_VERSION}.tar.gz \
-    && tar -zxvf openmpi-${OPENMPI_VERSION}.tar.gz \
-    && cd openmpi-${OPENMPI_VERSION} \
-    && ./configure --enable-static --enable-shared --prefix=${MPI_DIR} \
-    && make \
-    && make install \
-    && cd /home/$NB_USER \
-    && rm -r openmpi-${OPENMPI_VERSION} \
-    && rm openmpi-${OPENMPI_VERSION}.tar.gz \
-    && ldconfig
-RUN cd /home/$NB_USER \
-    && echo "export PATH=${MPI_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
-    && echo "export LD_LIBRARY_PATH=${MPI_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
-    && echo "">>/home/$NB_USER/.bashrc
-
-ENV PATH=${MPI_DIR}/bin:$PATH
-## additional python packages, including mpi4py which depending upon MPI
-#    (2) installed by pip. 
-#        NOTE: it appears that mamba/conda installing h5py,netCDF4,mpi4py (possibly needed by OLMT) may mess up later-on mpi-built libs
-RUN cd /home/$NB_USER \
-    && pip3 install h5py netCDF4 mpi4py
-
     
 ## TPLs
 # needs parallel versions of HDF5/netcdf4/petsc, which not available from debian (except for hdf5?)
+# version args, which can be user-provided by '--build-arg ...=...'
+ARG HDF5_MAJOR_VERSION=1.12
+ARG HDF5_VERSION=1.12.1
+ARG NETCDF_C_VERSION=4.8.1
+ARG NETCDF_FORTRAN_VERSION=4.6.1
+ARG PETSC_VERSION=3.20.6
+
 
 # set path variables
 ENV HDF5_DIR=/usr/local/tpls/netcdf-hdf5
@@ -160,8 +43,6 @@ ENV PETSC_DIR=/usr/local/tpls/petsc
 
 ## HDF5, both parallel and serial builds
 #https://support.hdfgroup.org/ftp/HDF5/releases/
-ARG HDF5_MAJOR_VERSION=1.12
-ARG HDF5_VERSION=1.12.1
 
 RUN cd /home/$NB_USER \
     && mkdir -p ${HDF5_DIR} \
@@ -190,7 +71,6 @@ RUN cd /home/$NB_USER \
 
 ## netCDF & netCDF-Fortran, both parallel and serial builds
 
-ARG NETCDF_C_VERSION=4.8.1
 RUN cd /home/$NB_USER \
     && mkdir -p ${NETCDF_PATH} \
     && wget --no-check-certificate https://downloads.unidata.ucar.edu/netcdf-c/${NETCDF_C_VERSION}/netcdf-c-${NETCDF_C_VERSION}.tar.gz \
@@ -218,7 +98,6 @@ RUN cd /home/$NB_USER \
     && echo "export LD_LIBRARY_PATH=${NETCDF_PATH}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
     && echo "">>/home/$NB_USER/.bashrc
        
-ARG NETCDF_FORTRAN_VERSION=4.6.1
 RUN cd /home/$NB_USER \
     && wget --no-check-certificate https://downloads.unidata.ucar.edu/netcdf-fortran/${NETCDF_FORTRAN_VERSION}/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz \
     && tar -xzf netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz \
@@ -247,7 +126,6 @@ RUN cd /home/$NB_USER \
     && echo "export NETCDF_FORTRAN_PATH=${NETCDF_PATH}">>/home/$NB_USER/.bashrc
 
 ## PETSc
-ARG PETSC_VERSION=3.20.6
 RUN cd /home/$NB_USER \
     && mkdir -p ${PETSC_DIR} \
     && wget --no-check-certificate https://web.cels.anl.gov/projects/petsc/download/release-snapshots/petsc-${PETSC_VERSION}.tar.gz \

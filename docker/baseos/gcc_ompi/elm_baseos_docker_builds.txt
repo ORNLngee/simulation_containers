@@ -1,6 +1,3 @@
-# Sources:
-# https://matt-wxw.medium.com/build-docker-images-for-platform-arm64-apple-m1-and-amd64-on-apple-m1-with-docker-desktop-7c6dd5f7f325
-# https://andrewlock.net/creating-multi-arch-docker-images-for-arm64-from-windows/
 
 # authored in April 2022, by Shawn Serbin @BNL
 # updated on 2025-05-06, by Fengming Yuan @ORNL.
@@ -15,3 +12,49 @@ cd $HOME/mygithub/E3SM_REPOS/simulation_containers
 
 # Step 3. Build an AMD64/ARM64 compliant version of the baseOS container. This is for local builds only
 docker buildx build --load -t yuanfornl/elm_baseos:gcc940ompi412_multiarch --platform linux/amd64,linux/arm64 -f docker/baseos/gcc_ompi/Dockerfile .
+
+
+UPDATED procedures (2025-07-03)
+STEP 1. build an baseos with scipy-notebook:2025-01-06 base image, adding OPENMPI, and other needed utilities and tools
+
+By default:
+	docker buildx build --platform linux/arm64,linux/amd64 \
+	-t yuanfornl/baseos_scipynb:gcc13_ompi418 \
+	-f docker/baseos/gcc_ompi/Dockerfile_baseos_scipynb . --push
+
+Newer versions of gcc/openmpi:
+	docker buildx build --platform linux/arm64,linux/amd64 \
+	--build-arg GCC_VERSION=15 \
+	--build-arg OPENMPI_VERSION=5.0 build-arg OPENMPI_VERSION_FULL=5.0.6 \
+	-t yuanfornl/baseos_scipynb:gcc15_ompi506 \
+	-f docker/baseos/gcc_ompi/Dockerfile_baseos_scipynb . --push
+
+STEP 2. build baseos with hdf5, netcdf, and PETSc libs
+
+By default:
+	docker buildx build --platform linux/arm64,linux/amd64 \
+	-t yuanfornl/elmpf_baseos:scipy-nb_20250106 \
+	-f docker/baseos/gcc_ompi/Dockerfile_elmpf . --push
+
+Newer versions of gcc/openmpi:
+	docker buildx build --platform linux/arm64,linux/amd64 \
+	--build-arg BASEOS_TAG=gcc14_ompi418 \
+	-t yuanfornl/elmpf_baseos:latest \
+	-f docker/baseos/gcc_ompi/Dockerfile_elmpf . --push
+
+
+STEP 3. build elmpf images, with codes and tools
+
+By default:
+	docker buildx build --platform linux/arm64,linux/amd64 \
+	-t yuanfornl/elmpf_docker2025:scipy-nb_20250106 \
+	-f docker/elm/elm_gcc-openmpi/Dockerfile_elmpf . --push
+
+Newer versions of gcc/openmpi:
+	docker buildx build --platform linux/arm64,linux/amd64 \
+	--build-arg ELMBASEOS_TAG=elmpf_baseos:latest \
+	-t yuanfornl/elmpf_docker2025:latest \
+	-f docker/elm/elm_gcc-openmpi/Dockerfile_elmpf . --push
+
+ 
+

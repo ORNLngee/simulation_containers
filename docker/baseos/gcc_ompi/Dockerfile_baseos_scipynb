@@ -1,0 +1,169 @@
+# -------------------------------------------------------------------------------------------
+#
+# Ubuntu OS embeded scipy-notebook docker container for building ELM-PFLOTRAN/
+# compilers: gcc/openmpi
+# python package manager: conda/(micro)mamba
+# docker image: docker.io/yuanfornl/elmpf_baseos
+#
+# -------------------------------------------------------------------------------------------
+#
+
+## scipy-notebook from quay.io, which based on ubuntu linux OS. Current: ubuntu-24.04, gcc-13.3 (will be upgraded to gcc-14)
+#    note: (1) conda packages are installed /opt/conda
+#          (2) python version: 3.12.8
+#          (3) default user is: jovyan (i.e. /home/jovyan)
+FROM quay.io/jupyter/scipy-notebook:2025-01-06
+
+LABEL maintainer.name="F.-M. Yuan" \
+      maintainer.email="yuanf@ornl.gov" \
+      author.name="Fengming Yuan" \
+      author.email="yuanf@ornl.gov" \
+      description="Ubuntu OS embeded scipy-notebook based images (gcc,python3, etc) + openmpi, loaded with necessary dependencies for building ELM-PFLOTRAN images"
+
+## Update the OS system and essential dependencies, not included in scipy-notebook container 
+# (note: USER root is a must for apt-get to work)
+USER root
+RUN apt-get update -y \
+    && apt-get install -y \
+    apt-transport-https \
+    apt-utils \
+    autotools-dev \
+    automake \
+    build-essential \
+    cmake \
+    gsl-bin \
+    libblas-dev \
+    libcurl4-openssl-dev \
+    libffi-dev \
+    libgsl-dev \
+    liblapack-dev \
+    libxml2 \
+    libxml2-dev \
+    libxml-libxml-perl \
+    libxml2-utils \
+    libudunits2-dev \
+    locales \
+    m4 \
+    rsync \
+    udunits-bin \
+    vim \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean all
+
+ARG GCC_VERSION=13
+# remove gcc-13 and install newer version of gcc/gfortran.
+RUN if ! [ ${GCC_VERSION} = 13]; then \
+	    apt-get remove gcc gcc-13 -y; \
+	    apt-get autoremove -y; \
+	    apt-get update -y; \
+	    apt-get install gcc-${GCC_VERSION} -y; \
+	    apt-get install g++-${GCC_VERSION} -y; \
+	    apt-get install gfortran-${GCC_VERSION} -y; \
+	    apt-get install gdb -y; \
+	    rm -rf /var/lib/apt/lists/*; \
+	    apt-get clean all; \
+	    cd /; \
+	    ln -sf /usr/bin/gcc-${GCC_VERSION} /usr/bin/gcc; \
+	    ln -sf /usr/bin/gcc-ar-${GCC_VERSION} /usr/bin/gcc-ar; \
+	    ln -sf /usr/bin/gcc-nm-${GCC_VERSION} /usr/bin/gcc-nm; \
+	    ln -sf /usr/bin/gcc-ranlib-${GCC_VERSION} /usr/bin/gcc-ranlib; \
+	    ln -sf /usr/bin/g++-${GCC_VERSION} /usr/bin/g++; \
+	    ln -sf /usr/bin/gfortran-${GCC_VERSION} /usr/bin/gfortran; \
+	    ln -sf /usr/bin/cpp-${GCC_VERSION} /usr/bin/cpp; \
+	    ln -sf /usr/bin/gcov-${GCC_VERSION} /usr/bin/gcov; \
+	    ln -sf /usr/bin/gcov-dump-${GCC_VERSION} /usr/bin/gcov-dump; \
+	    ln -sf /usr/bin/gcov-tool-${GCC_VERSION} /usr/bin/gcov-tool; \
+# gfortran and gdb by default
+     else \
+	    apt-get update -y; \
+	    apt-get install gfortran -y; \
+	    apt-get install gdb -y; \
+	    rm -rf /var/lib/apt/lists/*; \
+	    apt-get clean all; \
+    fi
+
+## Install program to configure locales
+RUN echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen \
+    && locale-gen
+## Set default locale for the environment
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+## check locales
+RUN locale -a
+
+
+## append PATH, LD_LIBRARY_PATH to /home/$NB_USER/.bashrc
+RUN echo "export PATH=$PATH ">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/opt/conda/lib">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
+## max. number of processors for parallel jobs (not use all on the machine)
+RUN cd /home/$NB_USER \
+    && export mystr='`nproc --ignore=1`' \
+    && echo "export MAX_NPROC=$mystr">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
+# apt-get installs almost libs under /usr/lib/aarch64-linux-gnu for arm64,
+# while under /usr/lib/x86_64-linux-gnu for amd64.
+RUN export UNKNOWNLIBPATH=$(ls -d /usr/lib/*-linux-gnu) \
+    && echo "export LD_LIBRARY_PATH=$UNKNOWNLIBPATH:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+ 
+## additional python packages, usefull for ELM running and postprocessing.
+#    (1) installed by mamba/conda. 
+#       (note: Tried install nco via apt-get which has issue of libs of bzip)
+RUN cd /home/$NB_USER \
+    && mamba install -y configparser \
+    && mamba install --freeze-installed -y nco \
+    && mamba install -y xarray \
+    && mamba install -y nc-time-axis \
+    && mamba install -y geopandas \
+    && mamba install -y pandas \
+    && mamba install -y geemap
+
+## Provide a symlink between ncap and ncap2, which installed above via 'nco' package.
+#   (old version nco has 'ncap' which now 'ncap2', but some old apps may still call 'ncap')
+RUN ln -sf /opt/conda/bin/ncap2 /opt/conda/bin/ncap
+
+## OPENMPI installation 
+#  (NOTE: apt-get installed openmpi-bin & libopenmpi has issues of PATH when conda installing mpi4py)
+
+ARG OPENMPI_VERSION=4.1
+ARG OPENMPI_VERSION_FULL=4.1.8
+ENV MPI_DIR=/usr/local/openmpi
+RUN cd /home/$NB_USER \
+    && wget --no-check-certificate https://download.open-mpi.org/release/open-mpi/v${OPENMPI_VERSION}/openmpi-${OPENMPI_VERSION_FULL}.tar.gz \
+    && tar -zxvf openmpi-${OPENMPI_VERSION_FULL}.tar.gz \
+    && cd openmpi-${OPENMPI_VERSION_FULL} \
+    && ./configure --enable-static --enable-shared --prefix=${MPI_DIR} \
+    && make \
+    && make install \
+    && cd /home/$NB_USER \
+    && rm -r openmpi-${OPENMPI_VERSION_FULL} \
+    && rm openmpi-${OPENMPI_VERSION_FULL}.tar.gz \
+    && ldconfig
+RUN cd /home/$NB_USER \
+    && echo "export PATH=${MPI_DIR}/bin:\$PATH">>/home/$NB_USER/.bashrc \
+    && echo "export LD_LIBRARY_PATH=${MPI_DIR}/lib:\$LD_LIBRARY_PATH">>/home/$NB_USER/.bashrc \
+    && echo "">>/home/$NB_USER/.bashrc
+
+ENV PATH=${MPI_DIR}/bin:$PATH
+## additional python packages, including mpi4py which depending upon MPI
+#    (2) installed by pip. 
+#        NOTE: it appears that mamba/conda installing h5py,netCDF4,mpi4py (possibly needed by OLMT) may mess up later-on mpi-built libs
+RUN cd /home/$NB_USER \
+    && pip3 install h5py netCDF4 mpi4py
+        
+## need to change container user from 'root' back to 'jovyan' and ownership of /home/jovyan and /opt/conda. NOTE this is the default user of $NB_USER
+RUN cd / \
+    && chown $NB_USER -R /opt/conda
+    
+RUN cd / \
+    && chown $NB_USER -R /home/$NB_USER
+    
+USER $NB_USER
+
+    
+### EOF
