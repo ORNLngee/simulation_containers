@@ -151,10 +151,13 @@ RUN cd /scripts \
 RUN cd /scripts \
     && cp /tools/OLMT/examples/2025_Workshop/full_run.sh . \
     && cp /tools/OLMT/examples/2025_Workshop/restart_trans_run.sh . \
+    && cp /tools/OLMT/examples/2025_Workshop/restart_trans_run_from_spinup.sh . \
     && chown $USER:dockerusers full_run.sh \
     && chmod +x full_run.sh \
     && chown $USER:dockerusers restart_trans_run.sh \
     && chmod +x restart_trans_run.sh \
+    && chown $USER:dockerusers restart_trans_run_from_spinup.sh \
+    && chmod +x restart_trans_run_from_spinup.sh \
     && cd /
 
 USER ${USER}
