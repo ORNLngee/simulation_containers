@@ -194,6 +194,12 @@ echo " "
 echo " "
 # =======================================================================================
 
+met_source=gswp3
+met_path=$HOME/inputdata/atm/datm7/atm_forcing.datm7.GSWP3.0.5d.v2.c180716_NGEE-Grid/cpl_bypass_${site_name}-Grid
+domain_file=domain.lnd.1x1pt_${site_name}-GRID_navy.nc
+surf_file=surfdata_1x1pt_${site_name}-GRID_simyr1850_c360x720_c171002.nc
+landuse_file=$HOME/inputdata/lnd/clm2/surfdata_map/landuse.timeseries_1x1pt_${site_name}-GRID_simyr1850-2015_c180423.nc
+
 # =======================================================================================
 # create the OLMT run command
 echo " "
@@ -202,17 +208,17 @@ runcmd="python3 ./site_fullrun.py \
       --site ${site_code} --sitegroup ${site_group} --caseidprefix ${case_prefix} \
       ${sim_years} --tstep ${timestep} --machine docker \
       --compiler gnu --mpilib openmpi \
-      --cpl_bypass --gswp3 \
+      --cpl_bypass --${met_source} \
       --model_root $HOME/models/E3SM \
       --caseroot $HOME/output \
       --ccsm_input $HOME/inputdata \
       --runroot $HOME/output \
       --spinup_vars \
       --nopointdata \
-      --metdir $HOME/inputdata/atm/datm7/atm_forcing.datm7.GSWP3.0.5d.v2.c180716_NGEE-Grid/cpl_bypass_${site_name}-Grid \
-      --domainfile $HOME/inputdata/share/domains/domain.clm/domain.lnd.1x1pt_${site_name}-GRID_navy.nc \
-      --surffile $HOME/inputdata/lnd/clm2/surfdata_map/surfdata_1x1pt_${site_name}-GRID_simyr1850_c360x720_c171002.nc \
-      --landusefile $HOME/inputdata/lnd/clm2/surfdata_map/landuse.timeseries_1x1pt_${site_name}-GRID_simyr1850-2015_c180423.nc \
+      --metdir ${met_path} \
+      --domainfile $HOME/inputdata/share/domains/domain.clm/${domain_file}} \
+      --surffile $HOME/inputdata/lnd/clm2/surfdata_map/${surf_file} \
+      --landusefile ${landuse_file} \
       ${scaling_args} \
       & sleep 10"
 echo ${runcmd}
@@ -224,17 +230,17 @@ if python3 ./site_fullrun.py \
       --site ${site_code} --sitegroup ${site_group} --caseidprefix ${case_prefix} \
       ${sim_years} --tstep ${timestep} --machine docker \
       --compiler gnu --mpilib openmpi \
-      --cpl_bypass --gswp3 \
+      --cpl_bypass --${met_source} \
       --model_root $HOME/models/E3SM \
       --caseroot $HOME/output \
       --ccsm_input $HOME/inputdata \
       --runroot $HOME/output \
       --spinup_vars \
       --nopointdata \
-      --metdir $HOME/inputdata/atm/datm7/atm_forcing.datm7.GSWP3.0.5d.v2.c180716_NGEE-Grid/cpl_bypass_${site_name}-Grid \
-      --domainfile $HOME/inputdata/share/domains/domain.clm/domain.lnd.1x1pt_${site_name}-GRID_navy.nc \
-      --surffile $HOME/inputdata/lnd/clm2/surfdata_map/surfdata_1x1pt_${site_name}-GRID_simyr1850_c360x720_c171002.nc \
-      --landusefile ~$HOME/inputdata/lnd/clm2/surfdata_map/landuse.timeseries_1x1pt_${site_name}-GRID_simyr1850-2015_c180423.nc \
+      --metdir ${met_path} \
+      --domainfile $HOME/inputdata/share/domains/domain.clm/${domain_file} \
+      --surffile $HOME/inputdata/lnd/clm2/surfdata_map/${surf_file} \
+      --landusefile ${landuse_file} \
       ${scaling_args} \
       & sleep 10
 

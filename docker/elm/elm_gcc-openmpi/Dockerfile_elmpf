@@ -3,7 +3,7 @@
 # Ubuntu OS embeded scipy-notebook docker container for building ELM-PFLOTRAN/
 # compilers: gcc/openmpi
 # python package manager: conda/(micro)mamba
-# docker image: docker.io/yuanfornl/elmpf_docker2025:scipy-nb_20250106
+# docker image: docker.io/yuanfornl/elmpf_docker2026:scipy-nb_20250106
 #
 # -------------------------------------------------------------------------------------------
 #
@@ -23,8 +23,11 @@ LABEL maintainer.name="Fengming Yuan" \
       version.baseos="gcc-13/openmpi-4.1.x/python-3.12x"
     
 ## where to get the ELM/PFLOTRAN, tools and containers source code
-ENV E3SM_REPO_URL=https://github.com/ORNLngee/E3SM_ORNL_IM.git
-ENV OLMT_REPO_URL=https://github.com/dmricciuto/OLMT.git
+#ENV E3SM_REPO_URL=https://github.com/ORNLngee/E3SM_ORNL_IM.git
+#ENV OLMT_REPO_URL=https://github.com/dmricciuto/OLMT.git
+ENV E3SM_REPO_URL=https://github.com/NGEE-Arctic/E3SM.git
+ENV OLMT_REPO_URL=https://github.com/NGEE-Arctic/OLMT.git
+
 ENV CONTAINERS_REPO_URL=https://github.com/ORNLngee/simulation_containers
 
 ## default USER is ${NB_USER}, i.e. jovyan (UID 1000, GID 100) of group 'user'  
@@ -129,9 +132,9 @@ RUN cd /home/$USER/models/E3SM/cime \
     && chmod -R 755 ./
 
 ## Install OLMT tool into the container to use with site or ensemble simulations
-# This uses a stable release of the Arctic-userpft branch of OLMT
+# This uses a stable release of OLMT
 RUN cd /home/$USER/tools \
-    && git -c http.sslVerify=false clone -b Arctic-userpft --single-branch --depth 1 $OLMT_REPO_URL \
+    && git -c http.sslVerify=false clone $OLMT_REPO_URL \
     && chown $USER -R ./OLMT \
     && chmod -R 755 ./OLMT \
     && cd /home/$USER
