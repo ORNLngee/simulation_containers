@@ -30,7 +30,7 @@ cd ${cesm_data_dir}
 # remove any old files before downloading updated met data
 rm -rf *
 # download the met data
-wget https://github.com/fmyuan/pt-e3sm-inputdata/archive/refs/heads/master.zip
+wget --no-check-certificate https://github.com/fmyuan/pt-e3sm-inputdata/archive/refs/heads/master.zip
 unzip master.zip
 cd pt-e3sm-inputdata-master
 mv * ../

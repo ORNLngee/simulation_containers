@@ -5,6 +5,15 @@
 # python package manager: conda/(micro)mamba
 # docker image: docker.io/yuanfornl/elmpf_docker2026:scipy-nb_20250106
 #
+
+# -------------------------------------------------------------------------------------------
+# Copy the cert from your local machine to the container - NOT YET works
+#COPY corporate-cert.crt /usr/local/share/ca-certificates/corporate-cert.crt
+
+# Update the CA store
+#RUN apt-get update && apt-get install -y ca-certificates && \
+#    update-ca-certificates
+
 # -------------------------------------------------------------------------------------------
 #
 # elm_baseos:tag args, which can be user-provided by '--build-arg ELMBASEOS_TAG=...'
@@ -54,10 +63,10 @@ RUN cd /home/$USER \
     && cd /home/$USER
 
 RUN cd /home/$USER/.cime \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config_compilers.xml \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config_machines.xml \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/gnu_docker.cmake \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config_compilers.xml \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/config_machines.xml \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/cime_config/gnu_docker.cmake \
     && cd /home/$USER
 
 ## max. number of processors for parallel jobs (not use all on the machine)
@@ -81,8 +90,9 @@ RUN cd /home/$USER/models \
     && perl -pi -e 's/com:/com\//g' ./.gitmodules \
     && perl -pi -e 's/git@/https:\/\//g' ./.gitmodules \
     && git submodule init \
-    && git submodule update -f --recursive \
-    && git checkout ngee-arctic-IM-merged
+    && git -c http.sslVerify=false submodule update -f --recursive
+    
+    ##&& git checkout fmyuan/elm/ngee-arctic-IM6
 
 ## ------------------------------------------------------------------------------
 ## Build example case as a test  --- only used with initial Docker build testing
@@ -112,24 +122,24 @@ RUN cd /home/$USER \
 # when using CMake 4.x:      -DCMAKE_Fortran_FLAGS="-I${NETCDF_PATH}-serial/include" -DCMAKE_EXE_LINKER_FLAGS="-L${NETCDF_PATH}-serial/lib -lnetcdff" \
 # when using CMake 3.x:      -DCMAKE_PREFIX_PATH=${NETCDF_PATH}-serial
 
-RUN cd /home/$USER/models/E3SM/cime \
-    && perl -pi -e 's/com:/com\//g' ./.gitmodules \
-    && perl -pi -e 's/git@/https:\/\//g' ./.gitmodules \
-    && git submodule init \
-    && git submodule update -f --recursive \
-    && cd ./CIME/non_py/cprnc \
-    && mkdir -p bld \
-    && cd bld \
-    && CC=gcc FC=gfortran cmake --fresh ../ \
-       -DCMAKE_INSTALL_PREFIX=/home/$USER/tools/cprnc \
-       -DCMAKE_PREFIX_PATH=/usr/local/tpls/netcdf-hdf5-serial \
-    && make all \
-    && make install \
-    && cd .. \
-    && rm -rf ./bld \
-    && cd /home/$USER/tools/cprnc \
-    && chown $USER -R ./ \
-    && chmod -R 755 ./
+#RUN cd /home/$USER/models/E3SM/cime \
+#    && perl -pi -e 's/com:/com\//g' ./.gitmodules \
+#    && perl -pi -e 's/git@/https:\/\//g' ./.gitmodules \
+#    && git submodule init \
+#    && git -c http.sslVerify=false submodule update -f --recursive \
+#    && cd ./CIME/non_py/cprnc \
+#    && mkdir -p bld \
+#    && cd bld \
+#    && CC=gcc FC=gfortran cmake --fresh ../ \
+#       -DCMAKE_INSTALL_PREFIX=/home/$USER/tools/cprnc \
+#       -DCMAKE_PREFIX_PATH=/usr/local/tpls/netcdf-hdf5-serial \
+#    && make all \
+#    && make install \
+#    && cd .. \
+#    && rm -rf ./bld \
+#    && cd /home/$USER/tools/cprnc \
+#    && chown $USER -R ./ \
+#    && chmod -R 755 ./
 
 ## Install OLMT tool into the container to use with site or ensemble simulations
 # This uses a stable release of OLMT
@@ -142,27 +152,27 @@ RUN cd /home/$USER/tools \
 ## Copy a few scripts into /scripts to make availible to users
 #    (1) downloading pt-e3sm-inputdata
 RUN cd /home/$USER/tools/scripts \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/download_elm_singlesite_forcing_data.sh \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/download_elm_singlesite_forcing_data.sh \
     && chown $USER download_elm_singlesite_forcing_data.sh \
     && chmod +x download_elm_singlesite_forcing_data.sh
 
 #    (2) an example OLMT script to setup/configure/build/run docker ELM
 RUN cd /home/$USER/tools/scripts \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/test_docker_OLMT_example.sh \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/test_docker_OLMT_example.sh \
     && chown $USER test_docker_OLMT_example.sh \
     && chmod +x test_docker_OLMT_example.sh \
     && cd /home/$USER
 
 #    (3) an example bash script for testing docker ELM by 42 fluxnet sites data
 RUN cd /home/$USER/tools/scripts \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/test_docker_42fluxnetsites_example.sh \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/test_docker_42fluxnetsites_example.sh \
     && chown $USER test_docker_42fluxnetsites_example.sh \
     && chmod +x test_docker_42fluxnetsites_example.sh \
     && cd /home/$USER
 
 #    (4) an example bash script for fully running docker ELM by 42 fluxnet sites data
 RUN cd /home/$USER/tools/scripts \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/test_docker_42fluxnetsites_3stages.sh \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/test_docker_42fluxnetsites_3stages.sh \
     && chown $USER test_docker_42fluxnetsites_3stages.sh \
     && chmod +x test_docker_42fluxnetsites_3stages.sh \
     && cd /home/$USER
@@ -174,7 +184,7 @@ ARG PFLOTRAN_PATH=/home/$USER/tools/ELM-PFLOTRAN_ROOT/pflotran-elm-interface/v20
 RUN cd /home/$USER/tools \
     && mkdir -p $ALQUIMIA_PATH \
     && mkdir -p $PFLOTRAN_PATH \
-    && wget $CONTAINERS_REPO_URL/raw/master/docker/elm/elm_gcc-openmpi/buildAlquimia_pflotran.sh \
+    && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/elm_gcc-openmpi/buildAlquimia_pflotran.sh \
     && git -c http.sslVerify=false clone -b bsulman/pflotran-elm-interface --single-branch --depth 1 \
        https://github.com/fmyuan/pflotran-elm-interface.git \
     && git -c http.sslVerify=false clone -b bsulman/pflotran_SOMdec_reactions --single-branch --depth 1 \
