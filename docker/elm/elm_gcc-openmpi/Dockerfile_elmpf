@@ -185,9 +185,9 @@ RUN cd /home/$USER/tools \
     && mkdir -p $ALQUIMIA_PATH \
     && mkdir -p $PFLOTRAN_PATH \
     && wget --no-check-certificate $CONTAINERS_REPO_URL/raw/master/docker/elm/elm_gcc-openmpi/buildAlquimia_pflotran.sh \
-    && git -c http.sslVerify=false clone -b bsulman/pflotran-elm-interface --single-branch --depth 1 \
+    && git -c http.sslVerify=false clone -b bsulman/pflotran-elm-interface \
        https://github.com/fmyuan/pflotran-elm-interface.git \
-    && git -c http.sslVerify=false clone -b bsulman/pflotran_SOMdec_reactions --single-branch --depth 1 \
+    && git -c http.sslVerify=false clone -b bsulman/pflotran_SOMdec_reactions \
        https://github.com/fmyuan/alquimia-dev.git \
     && bash ./buildAlquimia_pflotran.sh $ALQUIMIA_PATH $PFLOTRAN_PATH \
     && rm -rf pflotran-elm-interface \
@@ -195,7 +195,8 @@ RUN cd /home/$USER/tools \
     && cd /home/$USER/.cime \
     && echo ''>>gnu_docker.cmake \    
     && echo 'set(ALQUIMIA_PATH $ALQUIMIA_PATH)'>>gnu_docker.cmake \
-    && echo 'set(PFLOTRAN_PATH $PFLOTRAN_PATH)'>>gnu_docker.cmake
+    && echo 'set(PFLOTRAN_PATH $PFLOTRAN_PATH)'>>gnu_docker.cmake \
+    && cp gnu_docker.cmake docker_gnu.cmake
     
 RUN echo "*** ALQUIMIA-PFLOTRAN chem libs build completed successfully ***"
 
