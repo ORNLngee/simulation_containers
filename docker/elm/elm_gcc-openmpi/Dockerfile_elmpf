@@ -90,9 +90,8 @@ RUN cd /home/$USER/models \
     && perl -pi -e 's/com:/com\//g' ./.gitmodules \
     && perl -pi -e 's/git@/https:\/\//g' ./.gitmodules \
     && git submodule init \
-    && git -c http.sslVerify=false submodule update -f --recursive
-    
-    ##&& git checkout fmyuan/elm/ngee-arctic-IM6
+    && git -c http.sslVerify=false submodule update -f --recursive \    
+    && git checkout fmyuan/elm/develop_cpl-bypass-fixes
 
 ## ------------------------------------------------------------------------------
 ## Build example case as a test  --- only used with initial Docker build testing
@@ -147,6 +146,7 @@ RUN cd /home/$USER/tools \
     && git -c http.sslVerify=false clone $OLMT_REPO_URL \
     && chown $USER -R ./OLMT \
     && chmod -R 755 ./OLMT \
+    && cd OLMT && git -c http.sslVerify=false checkout fmyuan/trendy25-fixes \
     && cd /home/$USER
 
 ## Copy a few scripts into /scripts to make availible to users

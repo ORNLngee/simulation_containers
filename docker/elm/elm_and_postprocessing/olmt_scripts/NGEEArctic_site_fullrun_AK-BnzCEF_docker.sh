@@ -13,9 +13,9 @@ if python3 ./site_fullrun.py \
       --machine docker --compiler gnu --mpilib openmpi \
       --cpl_bypass --trendy25 \
       --model_root $HOME/models/E3SM \
-      --caseroot $HOME/output \
+      --caseroot $HOME/output/cime_case_dirs \
       --ccsm_input $HOME/inputdata \
-      --runroot $HOME/output \
+      --runroot $HOME/output/cime_run_dirs \
       --spinup_vars \
       --nopointdata \
       --metdir $HOME/inputdata/atm/datm7/atm_forcing.CRUJRA_trendy_2025_NGEE-Grid/BCEF/cpl_bypass_full \
