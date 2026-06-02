@@ -1,6 +1,6 @@
 # Dockerized versions of the ELM models, with or without coupling with alquimia-PFLOTRAN, or ATS. 
 <br>
-UPDATED: 2025-06-10, developed by the teams in ORNL/BNL/LANL, and maintained by F-M Yuan.
+UPDATED: 2026-06-02, developed by the teams in ORNL/BNL/LANL, and maintained by F-M Yuan.
 
 <br>
 Docker hub: https://hub.docker.com/u/yuanfornl
@@ -13,10 +13,10 @@ NOTE: 1) this forked repository is for purpose of improvements in applications r
 This branch now is a new version, totally based on quay.io/scipy-notebook images as the baseOS. For purposes of ELM model + two high-resoultion models, we provide:
 
 #### *ELM-PFLOTRAN models*
-[yuanfornl/elmpf_docker2025:latest](https://hub.docker.com/repository/docker/yuanfornl/elmpf_docker2025/tags)
+[yuanfornl/elmpf_docker2026:latest]([)](https://hub.docker.com/repository/docker/yuanfornl/elmpf_docker2026/tags/latest)
 
 ```
-docker pull yuanfornl/elmpf_docker2025:latest
+docker pull yuanfornl/elmpf_docker2026:latest
 ```
 
 
