@@ -13,7 +13,7 @@ NOTE: 1) this forked repository is for purpose of improvements in applications r
 This branch now is a new version, totally based on quay.io/scipy-notebook images as the baseOS. For purposes of ELM model + two high-resoultion models, we provide:
 
 #### *ELM-PFLOTRAN models*
-[yuanfornl/elmpf_docker2026:latest]([)](https://hub.docker.com/repository/docker/yuanfornl/elmpf_docker2026/tags/latest)
+[yuanfornl/elmpf_docker2026:latest](https://hub.docker.com/repository/docker/yuanfornl/elmpf_docker2026/tags/latest)
 
 ```
 docker pull yuanfornl/elmpf_docker2026:latest
